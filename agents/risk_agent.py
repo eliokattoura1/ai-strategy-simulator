@@ -31,8 +31,16 @@ async def run_risk_agent(
     industry: str,
     strategic_question: str,
     external_output: ExternalAgentOutput,
-    formulation_output: FormulationAgentOutput
+    formulation_output: FormulationAgentOutput,
+    context: str = None,
 ) -> RiskAgentOutput:
+    if context:
+        print(f"[RiskAgent] RAG context received ({len(context)} chars): {context[:200]!r}")
+    else:
+        print("[RiskAgent] No RAG context provided")
+    system_content = RISK_SYSTEM_PROMPT
+    if context:
+        system_content = f"REAL COMPANY DATA (use this in your analysis):\n{context}\n\n---\n\nPrioritize this data over general knowledge.\n\n{system_content}"
 
     prompt = f"""
 Company: {company}
@@ -52,7 +60,7 @@ Build risk scenarios and sensitivity analysis. Return structured JSON only.
         temperature=TEMPERATURE,
         response_format={"type": "json_object"},
         messages=[
-            {"role": "system", "content": RISK_SYSTEM_PROMPT},
+            {"role": "system", "content": system_content},
             {"role": "user", "content": prompt}
         ]
     )

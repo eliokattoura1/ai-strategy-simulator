@@ -4,7 +4,7 @@ from agents import synthesis
 from agents.orchestrator import run_orchestrator
 from agents.synthesis import run_synthesis
 
-async def run_simulation(company: str, industry: str, strategic_question: str):
+async def run_simulation(company: str, industry: str, strategic_question: str, company_name: str = None):
     print(f"\n{'='*60}")
     print(f"AI STRATEGY SIMULATOR")
     print(f"Company: {company}")
@@ -13,7 +13,7 @@ async def run_simulation(company: str, industry: str, strategic_question: str):
     print(f"{'='*60}\n")
 
     # Run all agents
-    state = await run_orchestrator(company, industry, strategic_question)
+    state = await run_orchestrator(company, industry, strategic_question, company_name=company_name)
 
     # Synthesize
     print("🧠 Running Synthesis Layer...")

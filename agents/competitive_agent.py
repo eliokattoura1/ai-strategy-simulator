@@ -31,8 +31,16 @@ async def run_competitive_agent(
     industry: str,
     strategic_question: str,
     external_output: ExternalAgentOutput,
-    position_output: PositionAgentOutput
+    position_output: PositionAgentOutput,
+    context: str = None,
 ) -> CompetitiveAgentOutput:
+    if context:
+        print(f"[CompetitiveAgent] RAG context received ({len(context)} chars): {context[:200]!r}")
+    else:
+        print("[CompetitiveAgent] No RAG context provided")
+    system_content = COMPETITIVE_SYSTEM_PROMPT
+    if context:
+        system_content = f"REAL COMPANY DATA (use this in your analysis):\n{context}\n\n---\n\nPrioritize this data over general knowledge.\n\n{system_content}"
 
     prompt = f"""
 Company: {company}
@@ -56,7 +64,7 @@ Model competitive dynamics and blue ocean opportunities. Return structured JSON 
         temperature=TEMPERATURE,
         response_format={"type": "json_object"},
         messages=[
-            {"role": "system", "content": COMPETITIVE_SYSTEM_PROMPT},
+            {"role": "system", "content": system_content},
             {"role": "user", "content": prompt}
         ]
     )

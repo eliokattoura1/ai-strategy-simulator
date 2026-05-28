@@ -187,5 +187,14 @@ The system generates a 13-page boardroom PDF including:
 Built as part of an MBA in AI & Data Science portfolio. Demonstrates multi-agent AI architecture, strategic management frameworks, and full-stack AI product development.
 
 ---
+## ⚠️ API Key Required
+
+This project requires an OpenAI API key to run.
+
+- Get one at: [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
+- New accounts receive free credits to get started
+- A full simulation costs approximately $0.50–2.00 in API calls
+
+> A demo video walkthrough is available here: *(coming soon)*
 
 *Powered by OpenAI GPT-4o*

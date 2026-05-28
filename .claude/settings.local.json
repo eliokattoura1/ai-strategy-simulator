@@ -4,7 +4,9 @@
       "Bash(python reports/pdf_generator.py)",
       "Bash(pip install *)",
       "Bash(python *)",
-      "Bash(dir /b *.png)"
+      "Bash(dir /b *.png)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\eliok\\\\Documents\\\\Ai Strategy Simulator\" -Recurse -File)",
+      "Bash(Select-Object -ExpandProperty FullName)"
     ]
   }
 }

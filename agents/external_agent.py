@@ -24,7 +24,14 @@ PESTEL must include all 6 factors.
 Scores are floats between 0 and 100 for attractiveness, 0-10 for porter forces.
 No markdown, no explanation, no extra fields. Return raw JSON only."""
 
-async def run_external_agent(company: str, industry: str, strategic_question: str) -> ExternalAgentOutput:
+async def run_external_agent(company: str, industry: str, strategic_question: str, context: str = None) -> ExternalAgentOutput:
+    if context:
+        print(f"[ExternalAgent] RAG context received ({len(context)} chars): {context[:200]!r}")
+    else:
+        print("[ExternalAgent] No RAG context provided")
+    system_content = EXTERNAL_SYSTEM_PROMPT
+    if context:
+        system_content = f"REAL COMPANY DATA (use this in your analysis):\n{context}\n\n---\n\nPrioritize this data over general knowledge.\n\n{system_content}"
     prompt = f"""
 Company: {company}
 Industry: {industry}
@@ -38,7 +45,7 @@ Conduct a full external environment analysis. Return structured JSON only.
         temperature=TEMPERATURE,
         response_format={"type": "json_object"},
         messages=[
-            {"role": "system", "content": EXTERNAL_SYSTEM_PROMPT},
+            {"role": "system", "content": system_content},
             {"role": "user", "content": prompt}
         ]
     )

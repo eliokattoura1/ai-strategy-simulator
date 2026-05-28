@@ -370,7 +370,7 @@ with st.sidebar:
 
 # ── Async agent runner ────────────────────────────────────────────────────────
 
-def _run_agents(company: str, industry: str, question: str, slots: dict) -> tuple:
+def _run_agents(company: str, industry: str, question: str, slots: dict, company_name: str = None) -> tuple:
     """
     Run all agents sequentially (with gather for parallel pairs).
     `slots` maps step keys to st.empty() placeholders for live progress.
@@ -402,41 +402,62 @@ def _run_agents(company: str, industry: str, question: str, slots: dict) -> tupl
             company=company, industry=industry, strategic_question=question
         )
 
+        # Build RAG context fetcher for progress-display run
+        _rag_fetch = lambda q: None
+        if company_name:
+            print(f"[RAG] _run_agents: RAG enabled for company='{company_name}'")
+            try:
+                from rag.document_processor import query_context
+                def _rag_fetch(q):
+                    result = query_context(company_name, q)
+                    return result if result else None
+            except Exception as e:
+                print(f"[RAG] _run_agents: failed to import query_context: {e}")
+        else:
+            print("[RAG] _run_agents: no company_name — RAG disabled")
+
         _mark("ext_int", "running")
         sim_state.external, sim_state.internal = await asyncio.gather(
-            run_external_agent(company, industry, question),
-            run_internal_agent(company, industry, question),
+            run_external_agent(company, industry, question,
+                context=_rag_fetch("external environment PESTEL market trends competition regulatory political economic")),
+            run_internal_agent(company, industry, question,
+                context=_rag_fetch("internal capabilities resources operations technology staff financial performance")),
         )
         _mark("ext_int", "done")
 
         _mark("position", "running")
         sim_state.position = await run_position_agent(
-            company, industry, question, sim_state.external, sim_state.internal
+            company, industry, question, sim_state.external, sim_state.internal,
+            context=_rag_fetch("strategic position market share growth competitive advantages SWOT"),
         )
         _mark("position", "done")
 
         _mark("competitive", "running")
         sim_state.competitive = await run_competitive_agent(
-            company, industry, question, sim_state.external, sim_state.position
+            company, industry, question, sim_state.external, sim_state.position,
+            context=_rag_fetch("competitors competitive strategy market dynamics pricing rivalry"),
         )
         _mark("competitive", "done")
 
         _mark("formulation", "running")
         sim_state.formulation = await run_formulation_agent(
             company, industry, question,
-            sim_state.internal, sim_state.position, sim_state.competitive
+            sim_state.internal, sim_state.position, sim_state.competitive,
+            context=_rag_fetch("strategy direction value proposition differentiation cost structure"),
         )
         _mark("formulation", "done")
 
         _mark("risk", "running")
         sim_state.risk = await run_risk_agent(
-            company, industry, question, sim_state.external, sim_state.formulation
+            company, industry, question, sim_state.external, sim_state.formulation,
+            context=_rag_fetch("risks challenges threats uncertainties regulatory compliance"),
         )
         _mark("risk", "done")
 
         _mark("execution", "running")
         sim_state.execution = await run_execution_agent(
-            company, industry, question, sim_state.formulation, sim_state.risk
+            company, industry, question, sim_state.formulation, sim_state.risk,
+            context=_rag_fetch("implementation operations milestones KPIs execution roadmap initiatives"),
         )
         _mark("execution", "done")
 
@@ -551,6 +572,14 @@ def page_run():
     </p>
     """, unsafe_allow_html=True)
 
+    # ── Document uploader ─────────────────────────────────────────────────────
+    uploaded_files = st.file_uploader(
+        "Upload company documents (optional) — annual reports, news, financials",
+        type=["pdf", "txt", "csv"],
+        accept_multiple_files=True,
+        key="doc_uploader",
+    )
+
     # ── Input form ────────────────────────────────────────────────────────────
     with st.container():
         st.markdown('<div class="card">', unsafe_allow_html=True)
@@ -619,6 +648,18 @@ def page_run():
         st.session_state.sim_industry = industry.strip()
         st.session_state.sim_question = question.strip()
 
+        # ── Process uploaded documents ────────────────────────────────────
+        rag_company = None
+        if uploaded_files:
+            try:
+                from rag.document_processor import process_documents
+                with st.spinner("Indexing documents…"):
+                    rag_chunks = process_documents(uploaded_files, company.strip())
+                st.success(f"📚 {rag_chunks} document chunks indexed")
+                rag_company = company.strip()
+            except Exception as rag_exc:
+                st.warning(f"Document indexing failed — simulation will continue without RAG context. ({rag_exc})")
+
         # ── Progress display ──────────────────────────────────────────────
         st.markdown('<div class="gold-hr"></div>', unsafe_allow_html=True)
         st.markdown(
@@ -674,7 +715,7 @@ def page_run():
 
         # ── Run agents ────────────────────────────────────────────────────
         try:
-            _run_agents(company.strip(), industry.strip(), question.strip(), slots)
+            _run_agents(company.strip(), industry.strip(), question.strip(), slots, company_name=rag_company)
 
             # ── Save JSON output ──────────────────────────────────────────
             # (main.py's run_simulation already saves the JSON via asyncio,
@@ -714,7 +755,8 @@ def page_run():
             async def _save_reports():
                 import main as _main
                 state, synth = await _main.run_simulation(
-                    company.strip(), industry.strip(), question.strip()
+                    company.strip(), industry.strip(), question.strip(),
+                    company_name=rag_company,
                 )
                 return state, synth
 

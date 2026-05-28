@@ -35,8 +35,16 @@ async def run_formulation_agent(
     strategic_question: str,
     internal_output: InternalAgentOutput,
     position_output: PositionAgentOutput,
-    competitive_output: CompetitiveAgentOutput
+    competitive_output: CompetitiveAgentOutput,
+    context: str = None,
 ) -> FormulationAgentOutput:
+    if context:
+        print(f"[FormulationAgent] RAG context received ({len(context)} chars): {context[:200]!r}")
+    else:
+        print("[FormulationAgent] No RAG context provided")
+    system_content = FORMULATION_SYSTEM_PROMPT
+    if context:
+        system_content = f"REAL COMPANY DATA (use this in your analysis):\n{context}\n\n---\n\nPrioritize this data over general knowledge.\n\n{system_content}"
 
     prompt = f"""
 Company: {company}
@@ -57,7 +65,7 @@ Formulate optimal strategy. Return structured JSON only.
         temperature=TEMPERATURE,
         response_format={"type": "json_object"},
         messages=[
-            {"role": "system", "content": FORMULATION_SYSTEM_PROMPT},
+            {"role": "system", "content": system_content},
             {"role": "user", "content": prompt}
         ]
     )

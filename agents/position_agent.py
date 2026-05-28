@@ -33,8 +33,16 @@ async def run_position_agent(
     industry: str,
     strategic_question: str,
     external_output: ExternalAgentOutput,
-    internal_output: InternalAgentOutput
+    internal_output: InternalAgentOutput,
+    context: str = None,
 ) -> PositionAgentOutput:
+    if context:
+        print(f"[PositionAgent] RAG context received ({len(context)} chars): {context[:200]!r}")
+    else:
+        print("[PositionAgent] No RAG context provided")
+    system_content = POSITION_SYSTEM_PROMPT
+    if context:
+        system_content = f"REAL COMPANY DATA (use this in your analysis):\n{context}\n\n---\n\nPrioritize this data over general knowledge.\n\n{system_content}"
 
     prompt = f"""
 Company: {company}
@@ -61,7 +69,7 @@ Conduct full strategic positioning analysis. Return structured JSON only.
         temperature=TEMPERATURE,
         response_format={"type": "json_object"},
         messages=[
-            {"role": "system", "content": POSITION_SYSTEM_PROMPT},
+            {"role": "system", "content": system_content},
             {"role": "user", "content": prompt}
         ]
     )
