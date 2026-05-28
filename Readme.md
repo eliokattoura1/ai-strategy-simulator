@@ -37,40 +37,19 @@ The system returns a 13-page strategy report with scored recommendations, confli
 
 ## 🤖 Multi-Agent Architecture
 
-INPUT: Company + Industry + Strategic Question
-│
-▼
-┌─────────────────────┐
-│   ORCHESTRATOR      │
-│   Routes & manages  │
-│   agent state       │
-└────────┬────────────┘
-│
-┌────┴─────┐
-▼          ▼
-External    Internal
-Agent       Agent
-│          │
-└────┬─────┘
-▼
-Position Agent
-▼
-Competitive Agent
-▼
-Formulation Agent
-▼
-Risk Agent
-▼
-Execution Agent
-▼
-┌─────────────────────┐
-│   SYNTHESIS LAYER   │
-│   Conflict resolution│
-│   Strategic scoring │
-└────────┬────────────┘
-▼
-PDF Board Report
-Plotly Dashboards
+**Pipeline flow:**
+
+1. **Orchestrator** — receives input, routes to agents, manages state
+2. **External Agent** — PESTEL + Porter's Five Forces + Industry Life Cycle
+3. **Internal Agent** — VRIO + McKinsey 7S + Value Chain
+4. **Position Agent** — SWOT/TOWS + BCG + Ansoff
+5. **Competitive Agent** — Game Theory + Blue Ocean ERRC
+6. **Formulation Agent** — Strategy Clock + Generic Strategies
+7. **Risk Agent** — STEEP Scenarios + Sensitivity Analysis
+8. **Execution Agent** — Balanced Scorecard + OKRs
+9. **Synthesis Layer** — Conflict resolution + strategic fit scoring + board narrative
+
+**Output:** 13-page PDF report + 5 Plotly dashboards
 
 ---
 
@@ -145,27 +124,29 @@ python main.py
 
 ## 📁 Project Structure
 
+```
 ai-strategy-simulator/
 ├── agents/
-│   ├── orchestrator.py       # Routes and manages agent state
-│   ├── external_agent.py     # PESTEL + Porter's 5 Forces
-│   ├── internal_agent.py     # VRIO + McKinsey 7S
-│   ├── position_agent.py     # SWOT/TOWS + BCG + Ansoff
-│   ├── competitive_agent.py  # Game Theory + Blue Ocean
-│   ├── formulation_agent.py  # Strategy Clock + Generic Strategies
-│   ├── risk_agent.py         # STEEP Scenarios
-│   ├── execution_agent.py    # Balanced Scorecard + OKRs
-│   └── synthesis.py          # Conflict resolution + scoring
-├── schemas/                  # Pydantic output schemas per agent
+│   ├── orchestrator.py        # Routes and manages agent state
+│   ├── external_agent.py      # PESTEL + Porter's Five Forces
+│   ├── internal_agent.py      # VRIO + McKinsey 7S
+│   ├── position_agent.py      # SWOT/TOWS + BCG + Ansoff
+│   ├── competitive_agent.py   # Game Theory + Blue Ocean
+│   ├── formulation_agent.py   # Strategy Clock + Generic Strategies
+│   ├── risk_agent.py          # STEEP Scenarios
+│   ├── execution_agent.py     # Balanced Scorecard + OKRs
+│   └── synthesis.py           # Conflict resolution + scoring
+├── schemas/                   # Pydantic output schemas per agent
 ├── reports/
-│   ├── pdf_generator.py      # 13-page ReportLab PDF generator
-│   ├── charts_generator.py   # 5 Plotly strategic charts
-│   └── output.json           # Raw agent outputs
+│   ├── pdf_generator.py       # 13-page ReportLab PDF generator
+│   ├── charts_generator.py    # 5 Plotly strategic charts
+│   └── output.json            # Raw agent outputs
 ├── ui/
-│   └── app.py                # Streamlit application
-├── config.py                 # API keys + model config
-├── main.py                   # CLI entry point
+│   └── app.py                 # Streamlit application
+├── config.py                  # API keys + model config
+├── main.py                    # CLI entry point
 └── requirements.txt
+```
 
 ---
 
