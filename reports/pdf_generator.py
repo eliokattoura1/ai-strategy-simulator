@@ -4,6 +4,7 @@ Entry point: generate_report(json_path, output_path)
 """
 
 import json
+import os
 import sys
 from datetime import datetime
 
@@ -14,7 +15,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm, mm
 from reportlab.platypus import (
     BaseDocTemplate, Frame, PageTemplate, Paragraph, Spacer, Table,
-    TableStyle, PageBreak, KeepTogether, HRFlowable, NextPageTemplate,
+    TableStyle, PageBreak, KeepTogether, HRFlowable, NextPageTemplate, Image,
 )
 from reportlab.platypus.flowables import Flowable
 from reportlab.graphics.shapes import Drawing, Rect, String, Line, Circle
@@ -465,6 +466,21 @@ def make_score_bar(score, width=90, height=10):
     return d
 
 
+def _chart_image(charts_dir, filename, max_w=480):
+    """Return a scaled ReportLab Image, or None if the file does not exist."""
+    if not charts_dir:
+        return None
+    path = os.path.join(charts_dir, filename)
+    if not os.path.exists(path):
+        return None
+    img = Image(path)
+    ratio = img.drawHeight / img.drawWidth
+    w = min(max_w, img.drawWidth)
+    img.drawWidth = w
+    img.drawHeight = w * ratio
+    return img
+
+
 # ── Section builders ──────────────────────────────────────────────────────────
 
 def build_cover(data, styles):
@@ -563,20 +579,27 @@ def build_cover(data, styles):
     return story
 
 
-def build_executive_summary(data, styles):
+def build_executive_summary(data, styles, charts_dir=None):
     syn = data.get("synthesis", {})
     summary = syn.get("executive_summary", "")
     score = syn.get("overall_strategic_fit_score", 0)
 
     story = [SectionHeader("Executive Summary"), Spacer(1, 0.3 * cm)]
 
-    # Score badge + summary side-by-side via a table
+    # Score badge + optional radar chart (left) + summary text (right)
     badge = ScoreBadge(score, "Overall Strategic Fit", size=100)
     summary_para = Paragraph(summary, styles["narrative"])
+    radar_img = _chart_image(charts_dir, "agent_scores_radar.png", max_w=180)
+
+    left_content = [badge]
+    if radar_img:
+        left_content += [Spacer(1, 8), radar_img]
+    left_col_w = 185 if radar_img else (3.5 * cm)
+    aw = PAGE_W - 2 * MARGIN
 
     layout = Table(
-        [[badge, summary_para]],
-        colWidths=[3.5 * cm, PAGE_W - 2 * MARGIN - 3.5 * cm - 0.5 * cm],
+        [[left_content, summary_para]],
+        colWidths=[left_col_w, aw - left_col_w - 0.5 * cm],
         hAlign="LEFT"
     )
     layout.setStyle(TableStyle([
@@ -597,7 +620,6 @@ def build_executive_summary(data, styles):
     for c, r in zip(conflicts, resolutions):
         rows.append([Paragraph(c, styles["table_cell"]),
                      Paragraph(r, styles["table_cell"])])
-    aw = PAGE_W - 2 * MARGIN
     t = Table(rows, colWidths=[aw * 0.45, aw * 0.55])
     t.setStyle(std_table_style())
     story.append(t)
@@ -605,7 +627,7 @@ def build_executive_summary(data, styles):
     return story
 
 
-def build_external(data, styles):
+def build_external(data, styles, charts_dir=None):
     ext = data.get("external", {})
     story = [SectionHeader("External Environment Analysis"), Spacer(1, 0.3 * cm)]
 
@@ -658,6 +680,11 @@ def build_external(data, styles):
         Spacer(1, 0.3 * cm),
         t2,
     ]))
+
+    porter_img = _chart_image(charts_dir, "porter_forces_bar.png")
+    if porter_img:
+        story.append(Spacer(1, 0.3 * cm))
+        story.append(porter_img)
 
     # Industry lifecycle
     lc = ext.get("industry_lifecycle", {})
@@ -971,25 +998,14 @@ def build_risk(data, styles):
     steep = risk.get("steep_scenarios", [])
     scenario_names = [s["name"].upper() for s in steep]
     dimensions = ["social", "technological", "economic", "environmental", "political"]
-    # wordWrap='LTR' treats each word as indivisible — prevents "OPTIMISTI C" splits.
-    # CJK mode breaks at any character position and would cause the exact issue we're fixing.
-    _sh = ParagraphStyle("steep_hdr", fontName="Helvetica-Bold", fontSize=8,
-                     textColor=WHITE, alignment=TA_CENTER, leading=11,
-                     splitLongWords=False, wordWrap='CJK')
-    _sp = ParagraphStyle("steep_prob", fontName="Helvetica", fontSize=7,
-                         textColor=colors.HexColor("#DDDDDD"), alignment=TA_CENTER, leading=9)
+    _sh = ParagraphStyle("sh", fontName="Helvetica-Bold", fontSize=8,
+                         textColor=WHITE, alignment=TA_CENTER,
+                         wordWrap='CJK', splitLongWords=False)
     def _scenario_cell(name, prob):
-        inner = Table(
-            [[Paragraph(name, _sh)], [Paragraph(f"p={prob}", _sp)]],
-            colWidths=[None],
-            style=TableStyle([
-                ("TOPPADDING",    (0, 0), (-1, -1), 0),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
-                ("LEFTPADDING",   (0, 0), (-1, -1), 0),
-                ("RIGHTPADDING",  (0, 0), (-1, -1), 0),
-            ]),
+        return Paragraph(
+            f'{name}<br/><font face="Helvetica" size="7" color="#DDDDDD">p={prob}</font>',
+            _sh,
         )
-        return inner
     rows = [[Paragraph("Dimension", _sh)] + [
         _scenario_cell(
             n,
@@ -1099,7 +1115,7 @@ def build_execution(data, styles):
     return story
 
 
-def build_options_ranking(data, styles):
+def build_options_ranking(data, styles, charts_dir=None):
     syn = data.get("synthesis", {})
     story = [SectionHeader("Strategic Options Ranking"), Spacer(1, 0.3 * cm)]
 
@@ -1127,6 +1143,11 @@ def build_options_ranking(data, styles):
             ts.add("FONTNAME",   (0, i), (-1, i), "Helvetica-Bold")
     t.setStyle(ts)
     story.append(t)
+
+    options_img = _chart_image(charts_dir, "strategic_options_bar.png")
+    if options_img:
+        story.append(Spacer(1, 0.3 * cm))
+        story.append(options_img)
 
     # Rationale bullets
     story.append(Spacer(1, 0.4*cm))
@@ -1261,12 +1282,13 @@ def build_appendix(data, styles):
             Paragraph(str(el.get("alignment_score","")), styles["table_cell_c"]),
             Paragraph(el.get("assessment",""), styles["table_cell"]),
         ])
-    t3 = Table(rows3, colWidths=[2.5*cm, 2.5*cm, aw-2.5*cm-2.5*cm], 
-           repeatRows=1, splitByRow=0)
+    t3 = Table(rows3, colWidths=[2.5*cm, 2.5*cm, aw-2.5*cm-2.5*cm], splitByRow=0)
     t3.setStyle(std_table_style())
-    story.append(Spacer(1, 0.4*cm))
-    story.append(Paragraph("McKinsey 7S — Alignment Scores", styles["subsection"]))
-    story.append(t3)
+    story.append(KeepTogether([
+        Spacer(1, 0.4*cm),
+        Paragraph("McKinsey 7S — Alignment Scores", styles["subsection"]),
+        t3,
+    ]))
 
     return story
 
@@ -1276,6 +1298,18 @@ def build_appendix(data, styles):
 def generate_report(json_path: str, output_path: str) -> None:
     with open(json_path, "r", encoding="utf-8") as f:
         data = json.load(f)
+
+    # Generate Plotly charts before building the PDF
+    charts_dir = None
+    try:
+        _here = os.path.dirname(os.path.abspath(__file__))
+        if _here not in sys.path:
+            sys.path.insert(0, _here)
+        from charts_generator import generate_all_charts
+        generate_all_charts(json_path)
+        charts_dir = os.path.join(os.path.dirname(os.path.abspath(json_path)), "charts")
+    except Exception as _exc:
+        print(f"Warning: chart generation skipped — {_exc}")
 
     styles = build_styles()
 
@@ -1310,10 +1344,10 @@ def generate_report(json_path: str, output_path: str) -> None:
     story += build_cover(data, styles)
 
     # 2. Executive Summary
-    story += build_executive_summary(data, styles)
+    story += build_executive_summary(data, styles, charts_dir)
 
     # 3. External Environment
-    story += build_external(data, styles)
+    story += build_external(data, styles, charts_dir)
 
     # 4. Internal Audit
     story += build_internal(data, styles)
@@ -1334,7 +1368,7 @@ def generate_report(json_path: str, output_path: str) -> None:
     story += build_execution(data, styles)
 
     # 10. Strategic Options Ranking
-    story += build_options_ranking(data, styles)
+    story += build_options_ranking(data, styles, charts_dir)
 
     # 11. Board Narrative
     story += build_board_narrative(data, styles)
