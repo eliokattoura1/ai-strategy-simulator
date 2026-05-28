@@ -14,7 +14,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm, mm
 from reportlab.platypus import (
     BaseDocTemplate, Frame, PageTemplate, Paragraph, Spacer, Table,
-    TableStyle, PageBreak, KeepTogether, HRFlowable,
+    TableStyle, PageBreak, KeepTogether, HRFlowable, NextPageTemplate,
 )
 from reportlab.platypus.flowables import Flowable
 from reportlab.graphics.shapes import Drawing, Rect, String, Line, Circle
@@ -28,7 +28,7 @@ LGRAY = colors.HexColor("#F4F5F7")
 MGRAY = colors.HexColor("#D0D3DA")
 DGRAY = colors.HexColor("#6B7280")
 
-ROW_ALT = colors.HexColor("#EEF0F5")
+ROW_ALT = colors.HexColor("#F5F5F5")
 
 # VRIO colours
 SCA_COLOR = colors.HexColor("#1A7A4A")   # green
@@ -77,9 +77,9 @@ def build_styles():
     ps("table_header",   fontName="Helvetica-Bold", fontSize=8.5,
        textColor=WHITE, alignment=TA_CENTER, leading=11)
     ps("table_cell",     fontName="Helvetica", fontSize=8,
-       textColor=colors.HexColor("#1C1C1C"), alignment=TA_LEFT, leading=11)
+       textColor=colors.black, alignment=TA_LEFT, leading=11)
     ps("table_cell_c",   fontName="Helvetica", fontSize=8,
-       textColor=colors.HexColor("#1C1C1C"), alignment=TA_CENTER, leading=11)
+       textColor=colors.black, alignment=TA_CENTER, leading=11)
     ps("score_label",    fontName="Helvetica-Bold", fontSize=22,
        textColor=WHITE, alignment=TA_CENTER)
     ps("score_sub",      fontName="Helvetica", fontSize=9,
@@ -412,36 +412,8 @@ def _header_footer(canvas, doc):
 
 
 def _cover_page(canvas, doc):
-    """Full-bleed navy cover — no header/footer chrome."""
-    canvas.saveState()
-    pw, ph = A4
-    canvas.setFillColor(NAVY)
-    canvas.rect(0, 0, pw, ph, fill=1, stroke=0)
-
-    # Gold accent bar
-    canvas.setFillColor(GOLD)
-    canvas.rect(0, ph * 0.42, pw, 3, fill=1, stroke=0)
-    canvas.rect(0, ph * 0.42 - 6, pw, 1.5, fill=1, stroke=0)
-
-    # Watermark
-    canvas.saveState()
-    canvas.setFillColor(colors.Color(1, 1, 1, alpha=0.04))
-    canvas.setFont("Helvetica-Bold", 72)
-    canvas.translate(pw / 2, ph / 2)
-    canvas.rotate(35)
-    canvas.drawCentredString(0, 0, "CONFIDENTIAL")
-    canvas.restoreState()
-
-    # Logo placeholder
-    lx = pw - 3.5 * cm - MARGIN
-    ly = ph - 2.0 * cm
-    canvas.setFillColor(colors.Color(1, 1, 1, alpha=0.1))
-    canvas.rect(lx, ly, 3.5 * cm, 1.1 * cm, fill=1, stroke=0)
-    canvas.setFont("Helvetica", 7)
-    canvas.setFillColor(colors.Color(1, 1, 1, alpha=0.5))
-    canvas.drawCentredString(lx + 1.75 * cm, ly + 0.4 * cm, "COMPANY LOGO")
-
-    canvas.restoreState()
+    """Cover page — all content rendered as flowables; no canvas drawing."""
+    pass
 
 
 # ── Table helpers ─────────────────────────────────────────────────────────────
@@ -451,14 +423,15 @@ def std_table_style(header_rows=1, col_widths=None):
         ("BACKGROUND",  (0, 0), (-1, header_rows - 1), NAVY),
         ("TEXTCOLOR",   (0, 0), (-1, header_rows - 1), WHITE),
         ("FONTNAME",    (0, 0), (-1, header_rows - 1), "Helvetica-Bold"),
-        ("FONTSIZE",    (0, 0), (-1, header_rows - 1), 8.5),
+        ("FONTSIZE",    (0, 0), (-1, header_rows - 1), 9),
         ("ALIGN",       (0, 0), (-1, header_rows - 1), "CENTER"),
         ("ROWBACKGROUNDS", (0, header_rows), (-1, -1), [WHITE, ROW_ALT]),
+        ("TEXTCOLOR",   (0, header_rows), (-1, -1), colors.black),
         ("FONTNAME",    (0, header_rows), (-1, -1), "Helvetica"),
         ("FONTSIZE",    (0, header_rows), (-1, -1), 8),
         ("VALIGN",      (0, 0), (-1, -1), "MIDDLE"),
-        ("TOPPADDING",  (0, 0), (-1, -1), 4),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ("TOPPADDING",  (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
         ("LEFTPADDING", (0, 0), (-1, -1), 6),
         ("RIGHTPADDING", (0, 0), (-1, -1), 6),
         ("GRID",        (0, 0), (-1, -1), 0.4, MGRAY),
@@ -470,34 +443,122 @@ def P(text, style_name, styles):
     return Paragraph(str(text), styles[style_name])
 
 
+def make_score_bar(score, width=90, height=10):
+    """Return a Drawing with a navy filled bar representing score/100."""
+    total_h = height + 16
+    d = Drawing(width, total_h)
+    # Background track
+    d.add(Rect(0, 16, width, height,
+               fillColor=LGRAY, strokeColor=None, strokeWidth=0))
+    # Filled portion
+    filled_w = max(1, float(score) / 100.0 * width)
+    d.add(Rect(0, 16, filled_w, height,
+               fillColor=NAVY, strokeColor=None, strokeWidth=0))
+    # Gold end-cap
+    if filled_w >= 4:
+        d.add(Rect(filled_w - 4, 16, 4, height,
+                   fillColor=GOLD, strokeColor=None, strokeWidth=0))
+    # Score label centred below bar
+    d.add(String(width / 2, 2, str(int(score)),
+                 fontName="Helvetica-Bold", fontSize=8,
+                 textAnchor="middle", fillColor=NAVY))
+    return d
+
+
 # ── Section builders ──────────────────────────────────────────────────────────
 
 def build_cover(data, styles):
+    """Pure-flowable cover page — zero canvas drawing."""
     story = []
     company = data.get("company", "Company Name")
     industry = data.get("industry", "")
     question = data.get("strategic_question", "")
     date_str = datetime.now().strftime("%B %Y")
+    aw = PAGE_W - 2 * MARGIN
 
-    # Vertical spacers to push content to vertical center of navy page
-    story.append(Spacer(1, 7.5 * cm))
+    # ── Logo placeholder ──────────────────────────────────────────────────────
+    story.append(Spacer(1, 50))
+    logo_tbl = Table(
+        [[Paragraph("COMPANY LOGO", ParagraphStyle(
+            "cov_logo", fontName="Helvetica", fontSize=7,
+            textColor=MGRAY, alignment=TA_RIGHT))]],
+        colWidths=[aw],
+    )
+    logo_tbl.setStyle(TableStyle([
+        ("TOPPADDING",    (0, 0), (-1, -1), 0),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING",  (0, 0), (-1, -1), 0),
+    ]))
+    story.append(logo_tbl)
+
+    # ── CONFIDENTIAL badge ────────────────────────────────────────────────────
+    story.append(Spacer(1, 80))
+    conf_tbl = Table(
+        [[Paragraph("CONFIDENTIAL", ParagraphStyle(
+            "cov_conf_p", fontName="Helvetica-Bold", fontSize=8,
+            textColor=NAVY, alignment=TA_CENTER))]],
+        colWidths=[3 * cm],
+        hAlign="CENTER",
+    )
+    conf_tbl.setStyle(TableStyle([
+        ("BOX",           (0, 0), (-1, -1), 1,   NAVY),
+        ("TOPPADDING",    (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 10),
+        ("RIGHTPADDING",  (0, 0), (-1, -1), 10),
+    ]))
+    story.append(conf_tbl)
+
+    # ── Main title ────────────────────────────────────────────────────────────
+    story.append(Spacer(1, 60))
     story.append(Paragraph("AI STRATEGY SIMULATOR", ParagraphStyle(
-        "cov_tag", fontName="Helvetica", fontSize=10,
-        textColor=GOLD, alignment=TA_CENTER, spaceAfter=8,
-        letterSpacing=4
+        "cov_title", fontName="Helvetica-Bold", fontSize=28,
+        textColor=NAVY, alignment=TA_CENTER, spaceAfter=0,
     )))
+    story.append(Spacer(1, 14))
     story.append(Paragraph("STRATEGIC INTELLIGENCE REPORT", ParagraphStyle(
-        "cov_sub", fontName="Helvetica-Bold", fontSize=9,
-        textColor=colors.Color(1, 1, 1, 0.5), alignment=TA_CENTER, spaceAfter=20
+        "cov_subtitle", fontName="Helvetica", fontSize=14,
+        textColor=DGRAY, alignment=TA_CENTER, spaceBefore=0,
     )))
-    story.append(Paragraph(company.upper(), styles["cover_company"]))
-    story.append(Paragraph(industry, styles["cover_industry"]))
-    story.append(Spacer(1, 0.5 * cm))
-    story.append(Paragraph(f'"{question}"', styles["cover_question"]))
-    story.append(Spacer(1, 2 * cm))
-    story.append(Paragraph(date_str, styles["cover_date"]))
-    story.append(Spacer(1, 0.4 * cm))
-    story.append(Paragraph("CONFIDENTIAL", styles["cover_conf"]))
+
+    # ── Company & industry ────────────────────────────────────────────────────
+    story.append(Spacer(1, 50))
+    story.append(Paragraph(company.upper(), ParagraphStyle(
+        "cov_co", fontName="Helvetica-Bold", fontSize=22,
+        textColor=GOLD, alignment=TA_CENTER,
+    )))
+    story.append(Spacer(1, 20))
+    story.append(Paragraph(industry, ParagraphStyle(
+        "cov_ind", fontName="Helvetica", fontSize=12,
+        textColor=DGRAY, alignment=TA_CENTER,
+    )))
+
+    # ── Strategic question ────────────────────────────────────────────────────
+    story.append(Spacer(1, 30))
+    q_indent = max(0, (aw - 400) / 2)
+    story.append(Paragraph(f'"{question}"', ParagraphStyle(
+        "cov_q", fontName="Helvetica-Oblique", fontSize=11,
+        textColor=colors.HexColor("#333333"), alignment=TA_CENTER, leading=16,
+        leftIndent=q_indent, rightIndent=q_indent,
+    )))
+
+    # ── Date ──────────────────────────────────────────────────────────────────
+    story.append(Spacer(1, 50))
+    story.append(Paragraph(date_str, ParagraphStyle(
+        "cov_dt", fontName="Helvetica", fontSize=11,
+        textColor=DGRAY, alignment=TA_CENTER,
+    )))
+
+    # ── Footer ────────────────────────────────────────────────────────────────
+    story.append(Spacer(1, 100))
+    story.append(Paragraph("CONFIDENTIAL", ParagraphStyle(
+        "cov_footer", fontName="Helvetica", fontSize=8,
+        textColor=MGRAY, alignment=TA_CENTER,
+    )))
+
+    # Switch template BEFORE PageBreak so page 2 gets the Normal header.
+    story.append(NextPageTemplate("Normal"))
     story.append(PageBreak())
     return story
 
@@ -563,7 +624,7 @@ def build_external(data, styles):
             Paragraph(p["direction"].upper(), styles["table_cell_c"]),
         ])
     aw = PAGE_W - 2 * MARGIN
-    t = Table(rows, colWidths=[2.2*cm, aw-2.2-2.2-2.5, 2.2*cm, 2.5*cm])
+    t = Table(rows, colWidths=[2.8*cm, aw-2.8*cm-2.2*cm-3*cm, 2.2*cm, 3*cm])
     ts = std_table_style()
     # Colour-code impact cells
     for i, p in enumerate(pestel, start=1):
@@ -577,14 +638,9 @@ def build_external(data, styles):
     story.append(t)
     story.append(Spacer(1, 0.5 * cm))
 
-    # Porter's 5 Forces bar chart
-    story.append(Paragraph("Porter's Five Forces", styles["subsection"]))
+    # Porter's 5 Forces — kept together to prevent mid-section page break
     forces = ext.get("porter_forces", [])
     bar_data = [(f["force"], f["score"]) for f in forces]
-    story.append(BarChart(bar_data, width=PAGE_W - 2 * MARGIN, max_val=10.0))
-
-    # Rationale table
-    story.append(Spacer(1, 0.3 * cm))
     rows2 = [["Force", "Intensity", "Score", "Rationale"]]
     for f in forces:
         rows2.append([
@@ -593,9 +649,15 @@ def build_external(data, styles):
             Paragraph(str(f["score"]), styles["table_cell_c"]),
             Paragraph(f["rationale"], styles["table_cell"]),
         ])
-    t2 = Table(rows2, colWidths=[3.5*cm, 2*cm, 1.5*cm, aw-3.5-2-1.5])
+    t2 = Table(rows2, colWidths=[3.5*cm, 2*cm, 1.5*cm, aw-3.5*cm-2*cm-1.5*cm],
+               splitByRow=0)
     t2.setStyle(std_table_style())
-    story.append(t2)
+    story.append(KeepTogether([
+        Paragraph("Porter's Five Forces", styles["subsection"]),
+        BarChart(bar_data, width=PAGE_W - 2 * MARGIN, max_val=10.0),
+        Spacer(1, 0.3 * cm),
+        t2,
+    ]))
 
     # Industry lifecycle
     lc = ext.get("industry_lifecycle", {})
@@ -629,7 +691,7 @@ def build_internal(data, styles):
             Paragraph(vrio_label.get(ci, ci), styles["table_cell_c"]),
         ])
     aw = PAGE_W - 2 * MARGIN
-    cw = [3.8*cm, 1.6*cm, 1.4*cm, 1.8*cm, 1.8*cm, aw-3.8-1.6-1.4-1.8-1.8]
+    cw = [4.5*cm, 1.5*cm, 1.4*cm, 1.8*cm, 1.8*cm, aw-4.5*cm-1.5*cm-1.4*cm-1.8*cm-1.8*cm]
     t = Table(rows, colWidths=cw)
     ts = std_table_style()
     for i, r in enumerate(internal.get("vrio_resources", []), start=1):
@@ -665,9 +727,7 @@ def build_internal(data, styles):
     story.append(Spacer(1, 0.2*cm))
     story.append(leg_t)
 
-    # McKinsey 7S
-    story.append(Spacer(1, 0.5 * cm))
-    story.append(Paragraph("McKinsey 7S Framework", styles["subsection"]))
+    # McKinsey 7S — kept together to prevent heading/table split across pages
     s7 = internal.get("mckinsey_7s", [])
     rows7 = [["Element", "Assessment", "Alignment Score"]]
     for el in s7:
@@ -680,9 +740,13 @@ def build_internal(data, styles):
                 "mono", fontName="Courier", fontSize=7.5,
                 textColor=NAVY, alignment=TA_LEFT)),
         ])
-    t7 = Table(rows7, colWidths=[2.5*cm, aw-2.5-4.5, 4.5*cm])
+    t7 = Table(rows7, colWidths=[3.5*cm, aw-3.5*cm-4.5*cm, 4.5*cm], splitByRow=0)
     t7.setStyle(std_table_style())
-    story.append(t7)
+    story.append(KeepTogether([
+        Spacer(1, 0.5*cm),
+        Paragraph("McKinsey 7S Framework", styles["subsection"]),
+        t7,
+    ]))
     story.append(PageBreak())
     return story
 
@@ -754,7 +818,7 @@ def build_position(data, styles):
             Paragraph(t["strategy"], styles["table_cell"]),
             Paragraph(t["rationale"], styles["table_cell"]),
         ])
-    tt = Table(rows_t, colWidths=[1.2*cm, aw*0.42, aw-1.2-aw*0.42])
+    tt = Table(rows_t, colWidths=[1.2*cm, aw*0.42, aw-1.2*cm-aw*0.42])
     ts_t = std_table_style()
     for i, t in enumerate(tows, start=1):
         c = type_colors.get(t["type"], NAVY)
@@ -792,7 +856,7 @@ def build_competitive(data, styles):
             Paragraph("✓" if s.get("recommended") else "", styles["table_cell_c"]),
         ])
     aw = PAGE_W - 2 * MARGIN
-    t = Table(rows, colWidths=[3.2*cm, 3*cm, 3*cm, 1.3*cm, 1.5*cm, 1.4*cm, aw-3.2-3-3-1.3-1.5-1.4])
+    t = Table(rows, colWidths=[3.2*cm, 3*cm, 3*cm, 1.3*cm, 1.5*cm, 1.4*cm, aw-3.2*cm-3*cm-3*cm-1.3*cm-1.5*cm-1.4*cm])
     ts = std_table_style()
     for i, s in enumerate(gt, start=1):
         if s.get("recommended"):
@@ -819,7 +883,7 @@ def build_competitive(data, styles):
             Paragraph(e.get("rationale", ""), styles["table_cell"]),
             Paragraph(str(e.get("impact", "")), styles["table_cell_c"]),
         ])
-    t2 = Table(rows2, colWidths=[3.5*cm, 2*cm, aw-3.5-2-1.5, 1.5*cm])
+    t2 = Table(rows2, colWidths=[3.5*cm, 2*cm, aw-3.5*cm-2*cm-1.5*cm, 1.5*cm])
     ts2 = std_table_style()
     for i, e in enumerate(errc, start=1):
         col = action_colors.get(e.get("action", ""), DGRAY)
@@ -907,8 +971,30 @@ def build_risk(data, styles):
     steep = risk.get("steep_scenarios", [])
     scenario_names = [s["name"].upper() for s in steep]
     dimensions = ["social", "technological", "economic", "environmental", "political"]
-    rows = [["Dimension"] + [
-        f"{n}\n(p={next((s['probability'] for s in steep if s['name']==n.lower()), '')})"
+    # wordWrap='LTR' treats each word as indivisible — prevents "OPTIMISTI C" splits.
+    # CJK mode breaks at any character position and would cause the exact issue we're fixing.
+    _sh = ParagraphStyle("steep_hdr", fontName="Helvetica-Bold", fontSize=8,
+                     textColor=WHITE, alignment=TA_CENTER, leading=11,
+                     splitLongWords=False, wordWrap='CJK')
+    _sp = ParagraphStyle("steep_prob", fontName="Helvetica", fontSize=7,
+                         textColor=colors.HexColor("#DDDDDD"), alignment=TA_CENTER, leading=9)
+    def _scenario_cell(name, prob):
+        inner = Table(
+            [[Paragraph(name, _sh)], [Paragraph(f"p={prob}", _sp)]],
+            colWidths=[None],
+            style=TableStyle([
+                ("TOPPADDING",    (0, 0), (-1, -1), 0),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+                ("LEFTPADDING",   (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING",  (0, 0), (-1, -1), 0),
+            ]),
+        )
+        return inner
+    rows = [[Paragraph("Dimension", _sh)] + [
+        _scenario_cell(
+            n,
+            next((s['probability'] for s in steep if s['name'] == n.lower()), ''),
+        )
         for n in scenario_names
     ]]
     for dim in dimensions:
@@ -941,7 +1027,7 @@ def build_risk(data, styles):
             Paragraph(r, styles["table_cell"]),
             Paragraph(m, styles["table_cell"]),
         ])
-    t2 = Table(rows2, colWidths=[0.8*cm, aw*0.42, aw-0.8-aw*0.42])
+    t2 = Table(rows2, colWidths=[0.8*cm, aw*0.42, aw-0.8*cm-aw*0.42])
     t2.setStyle(std_table_style())
     story.append(t2)
 
@@ -977,7 +1063,7 @@ def build_execution(data, styles):
             Paragraph(b.get("initiative",""), styles["table_cell"]),
         ])
     aw = PAGE_W - 2 * MARGIN
-    t = Table(rows, colWidths=[2.2*cm, aw*0.22, aw*0.20, aw*0.20, aw-2.2-aw*0.22-aw*0.20-aw*0.20])
+    t = Table(rows, colWidths=[2.2*cm, aw*0.22, aw*0.20, aw*0.20, aw-2.2*cm-aw*0.22-aw*0.20-aw*0.20])
     ts = std_table_style()
     for i, b in enumerate(bsc, start=1):
         col = persp_colors.get(b.get("perspective",""), NAVY)
@@ -1000,7 +1086,7 @@ def build_execution(data, styles):
             Paragraph(o.get("timeframe",""), styles["table_cell_c"]),
             Paragraph(o.get("owner",""), styles["table_cell"]),
         ])
-    t2 = Table(rows2, colWidths=[3.5*cm, aw*0.4, 2*cm, aw-3.5-aw*0.4-2])
+    t2 = Table(rows2, colWidths=[3.5*cm, aw*0.4, 2*cm, aw-3.5*cm-aw*0.4-2*cm])
     t2.setStyle(std_table_style())
     story.append(t2)
 
@@ -1023,7 +1109,6 @@ def build_options_ranking(data, styles):
     rows = [["Rank", "Option", "Strategic Fit", "Risk", "Feasibility", "Overall Score", "Supporting Frameworks"]]
     for i, opt in enumerate(sorted(options, key=lambda x: -x.get("overall_score", 0)), start=1):
         score = opt.get("overall_score", 0)
-        bar = "█" * int(score / 10) + "░" * (10 - int(score / 10))
         frameworks = ", ".join(opt.get("supporting_frameworks", []))
         rows.append([
             Paragraph(f"#{i}", styles["table_cell_c"]),
@@ -1031,12 +1116,10 @@ def build_options_ranking(data, styles):
             Paragraph(str(opt.get("strategic_fit_score","")), styles["table_cell_c"]),
             Paragraph(str(opt.get("risk_score","")), styles["table_cell_c"]),
             Paragraph(str(opt.get("feasibility_score","")), styles["table_cell_c"]),
-            Paragraph(f"{bar}\n{score}", ParagraphStyle(
-                "score_bar", fontName="Courier", fontSize=7,
-                textColor=NAVY, alignment=TA_CENTER)),
+            make_score_bar(score, width=88, height=10),
             Paragraph(frameworks, styles["small"]),
         ])
-    t = Table(rows, colWidths=[1*cm, 3.5*cm, 1.8*cm, 1.3*cm, 1.8*cm, 3.5*cm, aw-1-3.5-1.8-1.3-1.8-3.5])
+    t = Table(rows, colWidths=[1*cm, 3.5*cm, 1.8*cm, 1.3*cm, 1.8*cm, 3.5*cm, aw-1*cm-3.5*cm-1.8*cm-1.3*cm-1.8*cm-3.5*cm])
     ts = std_table_style()
     for i, opt in enumerate(sorted(options, key=lambda x: -x.get("overall_score", 0)), start=1):
         if i == 1:
@@ -1092,7 +1175,7 @@ def build_board_narrative(data, styles):
             Paragraph(b.get("expected_outcome",""), styles["table_cell"]),
             Paragraph(" | ".join(b.get("key_assumptions",[])), styles["small"]),
         ])
-    t = Table(rows, colWidths=[2*cm, 3.5*cm, aw*0.35, aw-2-3.5-aw*0.35])
+    t = Table(rows, colWidths=[2*cm, 3.5*cm, aw*0.35, aw-2*cm-3.5*cm-aw*0.35])
     t.setStyle(std_table_style())
     story.append(t)
     story.append(PageBreak())
@@ -1143,7 +1226,7 @@ def build_appendix(data, styles):
         ])
 
     aw = PAGE_W - 2 * MARGIN
-    t = Table(rows, colWidths=[5*cm, 3*cm, aw-5-3])
+    t = Table(rows, colWidths=[5*cm, 3*cm, aw-5*cm-3*cm])
     ts = std_table_style()
     # Highlight overall
     ts.add("BACKGROUND", (0, len(score_rows)), (-1, len(score_rows)), colors.HexColor("#E8EDF5"))
@@ -1151,9 +1234,7 @@ def build_appendix(data, styles):
     t.setStyle(ts)
     story.append(t)
 
-    # Porter scores
-    story.append(Spacer(1, 0.4*cm))
-    story.append(Paragraph("Porter's Five Forces — Detailed Scores", styles["subsection"]))
+    # Porter scores — kept together
     forces = ext.get("porter_forces", [])
     rows2 = [["Force", "Score / 10", "Intensity"]]
     for f in forces:
@@ -1162,13 +1243,16 @@ def build_appendix(data, styles):
             Paragraph(str(f["score"]), styles["table_cell_c"]),
             Paragraph(f["intensity"].upper(), styles["table_cell_c"]),
         ])
-    t2 = Table(rows2, colWidths=[6*cm, 2.5*cm, aw-6-2.5])
+    t2 = Table(rows2, colWidths=[6*cm, 2.5*cm, aw-6*cm-2.5*cm], splitByRow=0)
     t2.setStyle(std_table_style())
-    story.append(t2)
+    story.append(KeepTogether([
+        Spacer(1, 0.4*cm),
+        Paragraph("Porter's Five Forces — Detailed Scores", styles["subsection"]),
+        t2,
+    ]))
 
-    # McKinsey 7S scores
-    story.append(Spacer(1, 0.4*cm))
-    story.append(Paragraph("McKinsey 7S — Alignment Scores", styles["subsection"]))
+    # McKinsey 7S scores — KeepTogether prevents an orphaned last row.
+    # repeatRows=1 repeats the header if the table must split across pages anyway.
     s7 = internal.get("mckinsey_7s", [])
     rows3 = [["Element", "Alignment Score", "Assessment"]]
     for el in s7:
@@ -1177,8 +1261,11 @@ def build_appendix(data, styles):
             Paragraph(str(el.get("alignment_score","")), styles["table_cell_c"]),
             Paragraph(el.get("assessment",""), styles["table_cell"]),
         ])
-    t3 = Table(rows3, colWidths=[2.5*cm, 2.5*cm, aw-2.5-2.5])
+    t3 = Table(rows3, colWidths=[2.5*cm, 2.5*cm, aw-2.5*cm-2.5*cm], 
+           repeatRows=1, splitByRow=0)
     t3.setStyle(std_table_style())
+    story.append(Spacer(1, 0.4*cm))
+    story.append(Paragraph("McKinsey 7S — Alignment Scores", styles["subsection"]))
     story.append(t3)
 
     return story
@@ -1195,7 +1282,9 @@ def generate_report(json_path: str, output_path: str) -> None:
     # Page templates
     frame_normal = Frame(MARGIN, MARGIN + 1*cm, PAGE_W - 2*MARGIN,
                          PAGE_H - 2*MARGIN - 2.5*cm, id="normal")
-    frame_cover  = Frame(0, 0, PAGE_W, PAGE_H, id="cover")
+    frame_cover  = Frame(MARGIN, MARGIN, PAGE_W - 2 * MARGIN, PAGE_H - 2 * MARGIN,
+                         leftPadding=0, rightPadding=0,
+                         topPadding=0, bottomPadding=0, id="cover")
 
     def cover_tpl():
         return PageTemplate(id="Cover", frames=[frame_cover],
@@ -1217,12 +1306,8 @@ def generate_report(json_path: str, output_path: str) -> None:
 
     story = []
 
-    # 1. Cover
+    # 1. Cover (NextPageTemplate("Normal") is embedded at the end of build_cover)
     story += build_cover(data, styles)
-
-    # Switch to normal template after cover
-    from reportlab.platypus import NextPageTemplate
-    story.append(NextPageTemplate("Normal"))
 
     # 2. Executive Summary
     story += build_executive_summary(data, styles)
