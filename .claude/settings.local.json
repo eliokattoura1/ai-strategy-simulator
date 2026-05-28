@@ -3,7 +3,8 @@
     "allow": [
       "Bash(python reports/pdf_generator.py)",
       "Bash(pip install *)",
-      "Bash(python *)"
+      "Bash(python *)",
+      "Bash(dir /b *.png)"
     ]
   }
 }
