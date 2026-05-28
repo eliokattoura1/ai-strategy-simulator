@@ -60,35 +60,42 @@ html, body, [class*="css"], .stApp {
 [data-testid="stSidebar"] {
     background: linear-gradient(180deg, #1B2A4A 0%, #243357 60%, #1B2A4A 100%) !important;
     border-right: none;
+    min-width: 220px !important;
 }
 [data-testid="stSidebar"] * { color: #E8EBF0 !important; }
 [data-testid="stSidebar"] hr { border-color: rgba(201,168,76,0.35) !important; }
 
-/* ── Sidebar nav buttons ────────────────────────────────────────────────── */
-div[data-testid="stSidebar"] .stButton > button {
-    width: 100%;
-    background: transparent;
-    color: #C5CBDB !important;
-    border: none;
-    border-radius: 8px;
-    padding: 0.6rem 1rem;
-    text-align: left;
-    font-size: 0.9rem;
-    font-weight: 500;
-    transition: all 0.18s ease;
-    margin-bottom: 2px;
+/* ── Sidebar radio nav ──────────────────────────────────────────────────── */
+[data-testid="stSidebar"] [data-testid="stRadio"] > div {
+    gap: 2px !important;
 }
-div[data-testid="stSidebar"] .stButton > button:hover {
-    background: rgba(201,168,76,0.15) !important;
-    color: #C9A84C !important;
-    transform: translateX(3px);
+[data-testid="stSidebar"] [data-testid="stRadio"] label {
+    background: transparent !important;
+    border-radius: 8px !important;
+    padding: 0.45rem 0.75rem !important;
+    cursor: pointer !important;
+    transition: background 0.18s ease !important;
 }
-
-/* ── Active nav button ──────────────────────────────────────────────────── */
-div[data-testid="stSidebar"] .stButton.active > button {
+[data-testid="stSidebar"] [data-testid="stRadio"] label:hover {
     background: rgba(201,168,76,0.2) !important;
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] label p,
+[data-testid="stSidebar"] [data-testid="stRadio"] label span {
+    color: #E8EBF0 !important;
+    font-size: 0.9rem !important;
+    font-weight: 500 !important;
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] [aria-checked="true"] + div p,
+[data-testid="stSidebar"] [data-testid="stRadio"] [aria-checked="true"] + div span {
     color: #C9A84C !important;
-    border-left: 3px solid #C9A84C;
+    font-weight: 600 !important;
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] [data-testid="stMarkdownContainer"] p {
+    color: #E8EBF0 !important;
+}
+[data-testid="stSidebar"] [role="radio"] {
+    accent-color: #C9A84C !important;
+    border-color: #C9A84C !important;
 }
 
 /* ── Primary run button ─────────────────────────────────────────────────── */
@@ -297,13 +304,13 @@ _init_state()
 
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
-def _nav_button(label, icon, page_key):
-    active = st.session_state.page == page_key
-    prefix = "→ " if active else "   "
-    if st.button(f"{icon}  {prefix}{label}", key=f"nav_{page_key}",
-                 use_container_width=True):
-        st.session_state.page = page_key
-        st.rerun()
+_NAV_OPTIONS = {
+    "🏠  Home":               "home",
+    "🚀  Run Simulation":     "run",
+    "📊  Results Dashboard":  "results",
+    "📄  Download Report":    "download",
+}
+_NAV_LABELS = list(_NAV_OPTIONS.keys())
 
 with st.sidebar:
     st.markdown(f"""
@@ -317,12 +324,22 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown('<hr style="border-color:rgba(201,168,76,0.3);margin:0 0 1rem;">', unsafe_allow_html=True)
+    st.markdown('<hr style="border-color:rgba(201,168,76,0.3);margin:0 0 0.5rem;">', unsafe_allow_html=True)
 
-    _nav_button("Home",               "🏠", "home")
-    _nav_button("Run Simulation",     "🚀", "run")
-    _nav_button("Results Dashboard",  "📊", "results")
-    _nav_button("Download Report",    "📄", "download")
+    _current_label = next(
+        (k for k, v in _NAV_OPTIONS.items() if v == st.session_state.page),
+        _NAV_LABELS[0],
+    )
+    _selected = st.radio(
+        "Navigation",
+        _NAV_LABELS,
+        index=_NAV_LABELS.index(_current_label),
+        key="nav_radio",
+        label_visibility="collapsed",
+    )
+    if _NAV_OPTIONS[_selected] != st.session_state.page:
+        st.session_state.page = _NAV_OPTIONS[_selected]
+        st.rerun()
 
     st.markdown('<hr style="border-color:rgba(201,168,76,0.3);margin:1rem 0;">', unsafe_allow_html=True)
 
@@ -344,8 +361,8 @@ with st.sidebar:
         """, unsafe_allow_html=True)
 
     st.markdown("""
-    <div style="position:absolute; bottom:1.5rem; left:0; right:0; text-align:center;
-                font-size:0.68rem; color:#4A566A;">
+    <div style="text-align:center; margin-top:1.5rem; padding-bottom:0.75rem;
+                font-size:0.65rem; color:#4A566A;">
         Powered by Claude AI
     </div>
     """, unsafe_allow_html=True)
@@ -810,7 +827,7 @@ def page_results():
             st.markdown(f"""
             <div class="card" style="text-align:center;padding:1.25rem 1rem;margin-bottom:1rem;">
                 <div style="font-size:1.6rem;">{icon}</div>
-                <div style="font-size:1.8rem;font-weight:800;color:{color};">{val}</div>
+                <div style="font-size:2.5rem;font-weight:800;color:{color};">{val}</div>
                 <div style="font-size:0.75rem;color:#6B7280;font-weight:500;margin-top:2px;">{label}</div>
             </div>
             """, unsafe_allow_html=True)
@@ -1074,15 +1091,14 @@ def page_download():
 # ── Router ────────────────────────────────────────────────────────────────────
 
 page = st.session_state.get("page", "home")
-with st.container():
-    if page == "home":
-        page_home()
-    elif page == "run":
-        page_run()
-    elif page == "results":
-        page_results()
-    elif page == "download":
-        page_download()
-    else:
-        st.session_state.page = "home"
-        st.rerun()
+if page == "home":
+    page_home()
+elif page == "run":
+    page_run()
+elif page == "results":
+    page_results()
+elif page == "download":
+    page_download()
+else:
+    st.session_state.page = "home"
+    st.rerun()
