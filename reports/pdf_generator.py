@@ -1513,6 +1513,184 @@ def build_financial_viability(data, styles, charts_dir=None):
     return story
 
 
+def build_ethics_page(data, styles):
+    ethics = data.get("ethics")
+    if not ethics:
+        return []
+
+    aw = PAGE_W - 2 * MARGIN
+    story = [SectionHeader("Ethics & ESG Analysis", score=ethics.get("ethics_score")),
+             Spacer(1, 0.3 * cm)]
+
+    # ── KPI strip ─────────────────────────────────────────────────────────────
+    frameworks_list = ethics.get("ethical_frameworks", [])
+    verdicts = [f.get("verdict", "") for f in frameworks_list]
+    supports_count = verdicts.count("Supports")
+    neutral_count  = verdicts.count("Neutral")
+    opposes_count  = verdicts.count("Opposes")
+    fw_parts = []
+    if supports_count:
+        fw_parts.append(f"{supports_count} Support")
+    if neutral_count:
+        fw_parts.append(f"{neutral_count} Neutral")
+    if opposes_count:
+        fw_parts.append(f"{opposes_count} Oppose")
+    framework_summary = ", ".join(fw_parts) or "—"
+
+    ethical_risk   = ethics.get("overall_ethical_risk", "")
+    composite      = float(ethics.get("composite_esg_score", 0) or 0)
+    ethics_score   = int(ethics.get("ethics_score", 0) or 0)
+
+    risk_col      = RED if ethical_risk == "High" else AMBER if ethical_risk == "Medium" else GREEN
+    composite_col = GREEN if composite >= 7 else AMBER if composite >= 4 else RED
+    score_col     = GREEN if ethics_score >= 70 else AMBER if ethics_score >= 40 else RED
+    fw_col        = GREEN if supports_count >= 2 else AMBER if supports_count >= 1 else RED
+
+    hdr_cells = [Paragraph(h, styles["kpi_head"]) for h in
+                 ["Ethics Score", "ESG Composite", "Overall Ethical Risk", "Framework Verdicts"]]
+    val_cells = [
+        Paragraph(f"{ethics_score} / 100",   _kpi_val_style(score_col)),
+        Paragraph(f"{composite:.1f} / 10",   _kpi_val_style(composite_col)),
+        Paragraph(ethical_risk,               _kpi_val_style(risk_col)),
+        Paragraph(framework_summary,          _kpi_val_style(fw_col)),
+    ]
+    kpi_ts = TableStyle([
+        ("BACKGROUND",    (0, 0), (-1, 0), NAVY),
+        ("LINEBELOW",     (0, 0), (-1, 0), 1.5, GOLD),
+        ("BACKGROUND",    (0, 1), (-1, 1), BLUEGRAY),
+        ("ALIGN",         (0, 0), (-1, -1), "CENTER"),
+        ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
+        ("TOPPADDING",    (0, 0), (-1, -1), 9),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 9),
+        ("GRID",          (0, 0), (-1, -1), 0.4, MGRAY),
+        ("BOX",           (0, 0), (-1, -1), 0.75, MGRAY),
+        ("LINEBELOW",     (0, -1), (-1, -1), 1.5, DGRAY),
+        ("LINEAFTER",     (-1, 0), (-1, -1), 1.5, DGRAY),
+    ])
+    kpi_tbl = Table([hdr_cells, val_cells], colWidths=[aw / 4] * 4)
+    kpi_tbl.setStyle(kpi_ts)
+    story.append(kpi_tbl)
+    story.append(Spacer(1, 0.4 * cm))
+
+    # ── ESG table ─────────────────────────────────────────────────────────────
+    story.append(Paragraph("ESG Scoring", styles["subsection"]))
+    esg_scores = ethics.get("esg_scores", [])
+    rows_esg = [["Pillar", "Score", "Rationale", "Red Flags"]]
+    for e in esg_scores:
+        sv = float(e.get("score", 0) or 0)
+        sc = GREEN if sv >= 7 else AMBER if sv >= 4 else RED
+        flags = e.get("red_flags", [])
+        flags_text = "<br/>".join([f"• {f}" for f in flags]) if flags else "None"
+        rows_esg.append([
+            Paragraph(e.get("pillar", ""), styles["cell_label"]),
+            Paragraph(f"{sv:.1f}", _kpi_val_style(sc)),
+            Paragraph(e.get("rationale", ""), styles["table_cell"]),
+            Paragraph(flags_text, styles["table_cell"]),
+        ])
+    t_esg = Table(rows_esg, colWidths=[2.5*cm, 1.5*cm, aw * 0.42, aw - 2.5*cm - 1.5*cm - aw * 0.42])
+    ts_esg = std_table_style()
+    for i, e in enumerate(esg_scores, start=1):
+        sv = float(e.get("score", 0) or 0)
+        sc = GREEN if sv >= 7 else AMBER if sv >= 4 else RED
+        ts_esg.add("TEXTCOLOR", (1, i), (1, i), sc)
+        ts_esg.add("FONTNAME",  (1, i), (1, i), "Helvetica-Bold")
+        ts_esg.add("ALIGN",     (1, i), (1, i), "CENTER")
+    t_esg.setStyle(ts_esg)
+    story.append(t_esg)
+    story.append(Spacer(1, 0.4 * cm))
+
+    # ── Stakeholder Impact table ───────────────────────────────────────────────
+    story.append(Paragraph("Stakeholder Impact Analysis", styles["subsection"]))
+    impacts = ethics.get("stakeholder_impacts", [])
+    impact_colors   = {"Positive": GREEN, "Negative": RED, "Mixed": AMBER, "Neutral": DGRAY}
+    severity_colors = {"High": RED, "Medium": AMBER, "Low": GREEN}
+    rows_imp = [["Stakeholder", "Impact Type", "Severity", "Description"]]
+    for imp in impacts:
+        rows_imp.append([
+            Paragraph(imp.get("stakeholder", ""), styles["cell_label"]),
+            Paragraph(imp.get("impact_type", "").upper(), styles["table_cell_c"]),
+            Paragraph(imp.get("severity", "").upper(), styles["table_cell_c"]),
+            Paragraph(imp.get("description", ""), styles["table_cell"]),
+        ])
+    t_imp = Table(rows_imp, colWidths=[3*cm, 2.5*cm, 2*cm, aw - 3*cm - 2.5*cm - 2*cm])
+    ts_imp = std_table_style()
+    for i, imp in enumerate(impacts, start=1):
+        ic = impact_colors.get(imp.get("impact_type", ""), DGRAY)
+        sc = severity_colors.get(imp.get("severity", ""), DGRAY)
+        ts_imp.add("TEXTCOLOR", (1, i), (1, i), ic)
+        ts_imp.add("FONTNAME",  (1, i), (1, i), "Helvetica-Bold")
+        ts_imp.add("TEXTCOLOR", (2, i), (2, i), sc)
+        ts_imp.add("FONTNAME",  (2, i), (2, i), "Helvetica-Bold")
+    t_imp.setStyle(ts_imp)
+    story.append(t_imp)
+    story.append(Spacer(1, 0.4 * cm))
+
+    # ── Ethical Frameworks table ───────────────────────────────────────────────
+    story.append(Paragraph("Ethical Framework Assessment", styles["subsection"]))
+    verdict_colors = {"Supports": GREEN, "Neutral": AMBER, "Opposes": RED}
+    rows_fw = [["Framework", "Verdict", "Reasoning"]]
+    for fw in frameworks_list:
+        rows_fw.append([
+            Paragraph(fw.get("framework", ""), styles["cell_label"]),
+            Paragraph(fw.get("verdict", "").upper(), styles["table_cell_c"]),
+            Paragraph(fw.get("reasoning", ""), styles["table_cell"]),
+        ])
+    t_fw = Table(rows_fw, colWidths=[3.5*cm, 2.5*cm, aw - 3.5*cm - 2.5*cm])
+    ts_fw = std_table_style()
+    for i, fw in enumerate(frameworks_list, start=1):
+        vc = verdict_colors.get(fw.get("verdict", ""), DGRAY)
+        ts_fw.add("BACKGROUND", (1, i), (1, i), vc)
+        ts_fw.add("TEXTCOLOR",  (1, i), (1, i), WHITE)
+        ts_fw.add("FONTNAME",   (1, i), (1, i), "Helvetica-Bold")
+    t_fw.setStyle(ts_fw)
+    story.append(t_fw)
+    story.append(Spacer(1, 0.4 * cm))
+
+    # ── Ethical Red Flags — bulleted list with red left border ────────────────
+    red_flags = ethics.get("ethical_red_flags", [])
+    if red_flags:
+        story.append(Paragraph("Ethical Red Flags", styles["subsection"]))
+        for flag in red_flags:
+            rf_tbl = Table(
+                [[Paragraph(f"• {flag}", styles["table_cell"])]],
+                colWidths=[aw],
+            )
+            rf_tbl.setStyle(TableStyle([
+                ("LINEBEFORE",    (0, 0), (0, -1), 3, RED),
+                ("LEFTPADDING",   (0, 0), (-1, -1), 10),
+                ("RIGHTPADDING",  (0, 0), (-1, -1), 6),
+                ("TOPPADDING",    (0, 0), (-1, -1), 4),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                ("ROWBACKGROUNDS",(0, 0), (-1, -1), [colors.HexColor("#FEF0F0")]),
+            ]))
+            story.append(rf_tbl)
+            story.append(Spacer(1, 0.1 * cm))
+        story.append(Spacer(1, 0.2 * cm))
+
+    # ── Recommended Safeguards — bulleted list with green left border ─────────
+    safeguards = ethics.get("recommended_safeguards", [])
+    if safeguards:
+        story.append(Paragraph("Recommended Safeguards", styles["subsection"]))
+        for sg in safeguards:
+            sg_tbl = Table(
+                [[Paragraph(f"• {sg}", styles["table_cell"])]],
+                colWidths=[aw],
+            )
+            sg_tbl.setStyle(TableStyle([
+                ("LINEBEFORE",    (0, 0), (0, -1), 3, GREEN),
+                ("LEFTPADDING",   (0, 0), (-1, -1), 10),
+                ("RIGHTPADDING",  (0, 0), (-1, -1), 6),
+                ("TOPPADDING",    (0, 0), (-1, -1), 4),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                ("ROWBACKGROUNDS",(0, 0), (-1, -1), [colors.HexColor("#E8F4EC")]),
+            ]))
+            story.append(sg_tbl)
+            story.append(Spacer(1, 0.1 * cm))
+
+    story.append(PageBreak())
+    return story
+
+
 def build_options_ranking(data, styles, charts_dir=None):
     syn = data.get("synthesis", {})
     story = [SectionHeader("Strategic Options Ranking"), Spacer(1, 0.3 * cm)]
@@ -1634,6 +1812,15 @@ def build_appendix(data, styles):
          "Capability & readiness"),
         ("Financial Analysis",    f"{fin.get('financial_fit_score','')} / 100",
          "Financial viability"),
+    ]
+    if data.get("ethics"):
+        ethics_d = data["ethics"]
+        score_rows.insert(
+            score_rows.index(next(r for r in score_rows if r[0] == "Execution Readiness")),
+            ("Ethics Assessment", f"{ethics_d.get('ethics_score', '')} / 100",
+             "Ethical & ESG scoring"),
+        )
+    score_rows += [
         ("Overall Strategic Fit", f"{syn.get('overall_strategic_fit_score','')} / 100",
          "Synthesis score"),
     ]
@@ -1775,19 +1962,22 @@ def generate_report(json_path: str, output_path: str) -> None:
     # 9. Risk & Scenarios
     story += build_risk(data, styles)
 
-    # 10. Execution Roadmap
+    # 10. Ethics & ESG Analysis
+    story += build_ethics_page(data, styles)
+
+    # 11. Execution Roadmap
     story += build_execution(data, styles)
 
-    # 11. Financial Viability Analysis
+    # 12. Financial Viability Analysis
     story += build_financial_viability(data, styles, charts_dir)
 
-    # 12. Strategic Options Ranking
+    # 13. Strategic Options Ranking
     story += build_options_ranking(data, styles, charts_dir)
 
-    # 13. Board Narrative
+    # 14. Board Narrative
     story += build_board_narrative(data, styles)
 
-    # 14. Appendix
+    # 15. Appendix
     story += build_appendix(data, styles)
 
     doc.build(story)

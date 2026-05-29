@@ -15,6 +15,8 @@ from agents.risk_agent import run_risk_agent
 from agents.execution_agent import run_execution_agent
 from schemas.finance_schema import FinanceAgentOutput
 from agents.finance_agent import run_finance_agent
+from schemas.ethics_schema import EthicsAgentOutput
+from agents.ethics_agent import run_ethics_agent
 from dataclasses import dataclass
 
 @dataclass
@@ -28,6 +30,7 @@ class SimulatorState:
     competitive: CompetitiveAgentOutput = None
     formulation: FormulationAgentOutput = None
     risk: RiskAgentOutput = None
+    ethics: EthicsAgentOutput = None
     execution: ExecutionAgentOutput = None
     finance: FinanceAgentOutput = None
 
@@ -94,6 +97,13 @@ async def run_orchestrator(
         company, industry, strategic_question,
         state.external, state.formulation,
         context=fetch("risks challenges threats uncertainties regulatory compliance"),
+    )
+
+    print("⚖️  Running Ethics agent...")
+    state.ethics = await run_ethics_agent(
+        company, industry, strategic_question,
+        state.risk, state.formulation,
+        context=fetch("ethics ESG stakeholder impact governance social responsibility"),
     )
 
     print("🚀 Running Execution agent...")

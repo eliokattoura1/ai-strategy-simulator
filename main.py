@@ -40,6 +40,8 @@ async def run_simulation(company: str, industry: str, strategic_question: str, c
         "finance": state.finance.model_dump() if state.finance else None,
         "synthesis": synthesis.model_dump()
     }
+    if state.ethics:
+        output["ethics"] = state.ethics.model_dump()
 
     with open("reports/output.json", "w") as f:
         json.dump(output, f, indent=2)
