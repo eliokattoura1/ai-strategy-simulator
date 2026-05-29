@@ -1,6 +1,6 @@
 # 🧠 AI Strategy Simulator
 
-> A multi-agent AI system that replicates a full C-suite strategy process — from environmental scanning to boardroom-ready recommendations.
+> A multi-agent AI system that replicates a full C-suite strategy process — from environmental scanning to boardroom-ready recommendations, with a built-in financial viability engine.
 
 ![Python](https://img.shields.io/badge/Python-3.11+-blue)
 ![OpenAI](https://img.shields.io/badge/OpenAI-GPT--4o-green)
@@ -11,12 +11,12 @@
 
 ## 🎯 What It Does
 
-Input a company, industry, and strategic question. The system deploys 8 specialized AI agents — each running a different strategic management framework — then synthesizes their outputs into a ranked, scored, boardroom-ready PDF strategy report.
+Input a company, industry, and strategic question. The system deploys 9 specialized AI agents — each running a different strategic management or finance framework — then synthesizes their outputs into a ranked, scored, boardroom-ready PDF strategy report.
 
 **Example:**
 > *"Should Bank Audi expand into fintech or defend its core banking position?"*
 
-The system returns a 13-page strategy report with scored recommendations, conflict resolutions, and 3 scenario branches in under 2 minutes.
+The system returns a 16-page investment-bank-style report with scored recommendations, financial viability analysis, conflict resolutions, and 3 scenario branches — in under 2 minutes.
 
 ---
 
@@ -31,6 +31,7 @@ The system returns a 13-page strategy report with scored recommendations, confli
 | Strategy Formulation | Bowman's Strategy Clock, Generic Strategies |
 | Risk & Scenarios | STEEP Scenario Planning, Sensitivity Analysis |
 | Execution | Balanced Scorecard, OKRs |
+| **Financial Viability** | **DCF / NPV / IRR, Cap Table & Dilution, Burn Rate & Unit Economics, 3-Statement Model, Valuation Multiples** |
 | Synthesis | Conflict Resolution, Strategic Fit Scoring |
 
 ---
@@ -47,19 +48,50 @@ The system returns a 13-page strategy report with scored recommendations, confli
 6. **Formulation Agent** — Strategy Clock + Generic Strategies
 7. **Risk Agent** — STEEP Scenarios + Sensitivity Analysis
 8. **Execution Agent** — Balanced Scorecard + OKRs
-9. **Synthesis Layer** — Conflict resolution + strategic fit scoring + board narrative
+9. **Finance Agent** — DCF · Cap Table · Burn Rate · 3-Statement Model · Valuation Comps
+10. **Synthesis Layer** — Conflict resolution + strategic fit scoring + board narrative
 
-**Output:** 13-page PDF report + 5 Plotly dashboards
+**Output:** 16-page PDF report + 8 Plotly charts
+
+---
+
+## 💰 Finance Agent — 5 Domains
+
+The Finance Agent runs a deterministic Python math engine (no LLM hallucination on numbers) alongside an LLM that interprets the results in strategic context.
+
+| Domain | What It Computes |
+|--------|-----------------|
+| **DCF / Valuation** | NPV, IRR, payback period, terminal value, enterprise value (WACC-discounted) |
+| **Cap Table & Equity Dilution** | Pre/post-money ownership, dilution %, new shares issued, price per share |
+| **Burn Rate & Unit Economics** | Monthly burn, runway, LTV/CAC ratio, payback months, ARPU, churn, gross margin |
+| **3-Statement Model** | Projected P&L, balance sheet, and cash flow statement |
+| **Valuation Multiples** | EV/EBITDA, EV/Revenue, P/E vs. comparable companies; Bear / Base / Bull range |
+
+Outputs a **go / conditional go / no-go signal** and a CFO-style summary paragraph.
 
 ---
 
 ## 📊 Output Per Run
 
-- ✅ Structured JSON per agent
+- ✅ Structured JSON per agent (all 9 agents + synthesis)
 - ✅ Strategic fit score (0–100)
+- ✅ Financial fit score (0–100) with go-signal
 - ✅ 3 scenario branches (optimistic / base / stress)
-- ✅ 13-page PDF boardroom report
-- ✅ 5 Plotly strategic dashboards
+- ✅ 16-page investment-bank-style PDF boardroom report
+- ✅ 8 Plotly charts (5 strategic + 3 financial)
+
+### Charts Generated
+
+| Chart | Description |
+|-------|-------------|
+| Strategic Capability Radar | Scores across all 8 analytical dimensions |
+| Porter's Five Forces Bar | Industry competitive intensity (0–10) |
+| BCG Matrix | Business unit portfolio positioning |
+| STEEP Scenario Comparison | Scenario severity across dimensions |
+| Strategic Options Ranking | Overall score, fit, risk & feasibility |
+| **DCF Waterfall** | From revenue to NPV via WACC discounting |
+| **Cumulative Free Cash Flow** | Projected FCF accumulation over 5 years |
+| **Valuation Comps** | Subject multiples vs. comparable companies |
 
 ---
 
@@ -69,12 +101,13 @@ The system returns a 13-page strategy report with scored recommendations, confli
 |-----------|-----------|
 | AI Agents | OpenAI GPT-4o |
 | Orchestration & Synthesis | OpenAI GPT-4o |
+| Financial Math Engine | Pure Python (deterministic — no LLM for numbers) |
 | Agent State Management | Python async + dataclasses |
 | Data Validation | Pydantic v2 |
-| UI | Streamlit |
-| PDF Report | ReportLab |
-| Charts | Plotly |
-| Vector Database | ChromaDB (RAG — coming soon) |
+| UI | Streamlit (Playfair Display + Inter — investment bank aesthetic) |
+| PDF Report | ReportLab (16-page, investment bank layout) |
+| Charts | Plotly (8 charts — strategic + financial) |
+| Vector Database | ChromaDB (RAG — document upload & context injection) |
 
 ---
 
@@ -110,7 +143,7 @@ export OPENAI_API_KEY=your_key_here
 
 ### Run
 
-**Streamlit UI:**
+**Streamlit UI (recommended):**
 ```bash
 streamlit run ui/app.py
 ```
@@ -135,14 +168,29 @@ ai-strategy-simulator/
 │   ├── formulation_agent.py   # Strategy Clock + Generic Strategies
 │   ├── risk_agent.py          # STEEP Scenarios
 │   ├── execution_agent.py     # Balanced Scorecard + OKRs
+│   ├── finance_agent.py       # DCF + Cap Table + Burn + Statements + Valuation
 │   └── synthesis.py           # Conflict resolution + scoring
-├── schemas/                   # Pydantic output schemas per agent
+├── schemas/
+│   ├── external_schema.py
+│   ├── internal_schema.py
+│   ├── position_schema.py
+│   ├── competitive_schema.py
+│   ├── formulation_schema.py
+│   ├── risk_schema.py
+│   ├── execution_schema.py
+│   ├── finance_schema.py      # Pydantic models for all 5 finance domains
+│   └── synthesis_schema.py
+├── tools/
+│   └── finance_math.py        # Deterministic NPV, IRR, LTV/CAC, dilution, burn
 ├── reports/
-│   ├── pdf_generator.py       # 13-page ReportLab PDF generator
-│   ├── charts_generator.py    # 5 Plotly strategic charts
-│   └── output.json            # Raw agent outputs
+│   ├── pdf_generator.py       # 16-page ReportLab PDF (investment bank layout)
+│   ├── charts_generator.py    # 5 strategic Plotly charts
+│   ├── finance_dashboard.py   # 3 financial Plotly charts (DCF, FCF, comps)
+│   └── output.json            # Raw agent outputs (all 9 agents + synthesis)
+├── rag/
+│   └── document_processor.py  # ChromaDB document upload + context injection
 ├── ui/
-│   └── app.py                 # Streamlit application
+│   └── app.py                 # Streamlit UI (premium investment bank design)
 ├── config.py                  # API keys + model config
 ├── main.py                    # CLI entry point
 └── requirements.txt
@@ -150,9 +198,9 @@ ai-strategy-simulator/
 
 ---
 
-## 📄 Sample Report
+## 📄 Report Structure (16 Pages)
 
-The system generates a 13-page boardroom PDF including:
+The system generates a 16-page investment-bank-style PDF:
 
 1. Cover Page
 2. Executive Summary + Strategic Fit Score
@@ -163,37 +211,58 @@ The system generates a 13-page boardroom PDF including:
 7. Strategy Formulation (Strategy Clock + Generic)
 8. Risk & Scenarios (STEEP + Sensitivity)
 9. Execution Roadmap (BSC + OKRs)
-10. Strategic Options Ranking
-11. Board Narrative
-12. Appendix — Raw Scores
+10. Financial Viability (DCF + Valuation + Unit Economics)
+11. Strategic Options Ranking
+12. Board Narrative
+13–16. Appendix — Raw scores, Porter forces, McKinsey 7S, Finance detail
+
+---
+
+## 🎓 Course Showcase
+
+This project was built as part of an MBA in AI & Data Science. Each module maps directly to coursework:
+
+| Module | Course(s) |
+|--------|-----------|
+| External, Internal, Position, Competitive, Formulation, Risk, Execution, Synthesis agents | Strategic Management |
+| Finance Agent — DCF, cap table, burn rate, unit economics, valuation multiples | Entrepreneurial Finance + Managerial Accounting |
+| *(Coming soon)* Ethics Agent | Business Ethics |
+| *(Coming soon)* RAG pipeline — ChromaDB document ingestion | Management Information Systems / Data Science |
+| *(Coming soon)* LangGraph orchestration + memory | AI & Machine Learning |
 
 ---
 
 ## 🗺️ Roadmap
 
-- [x] Multi-agent pipeline
+- [x] Multi-agent strategy pipeline (8 agents)
 - [x] PDF boardroom report
-- [x] Plotly dashboards
+- [x] Plotly strategic dashboards
 - [x] Streamlit UI
-- [ ] ChromaDB RAG — upload company documents
+- [x] **Finance Agent** — DCF, cap table, burn rate, 3-statement model, valuation comps
+- [x] **3 financial Plotly charts** — DCF waterfall, cumulative FCF, valuation comps
+- [x] **UI redesign** — Playfair Display + Inter, investment bank aesthetic
+- [x] **PDF redesign** — 16-page investment bank layout with finance page
+- [x] **ChromaDB RAG** — upload company documents for context injection
 - [ ] PowerPoint export
 - [ ] Company comparison mode
 - [ ] Historical run storage
+- [ ] Ethics Agent
 
 ---
 
 ## 👨‍💼 About
 
-Built as part of an MBA in AI & Data Science portfolio. Demonstrates multi-agent AI architecture, strategic management frameworks, and full-stack AI product development.
+Built as part of an MBA in AI & Data Science portfolio. Demonstrates multi-agent AI architecture, strategic management frameworks, financial modeling, and full-stack AI product development.
 
 ---
+
 ## ⚠️ API Key Required
 
 This project requires an OpenAI API key to run.
 
 - Get one at: [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
 - New accounts receive free credits to get started
-- A full simulation costs approximately $0.50–2.00 in API calls
+- A full simulation costs approximately **$0.50–2.00** in API calls
 
 > A demo video walkthrough is available here: *(coming soon)*
 
