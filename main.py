@@ -4,7 +4,14 @@ from agents import synthesis
 from agents.orchestrator import run_orchestrator
 from agents.synthesis import run_synthesis
 
-async def run_simulation(company: str, industry: str, strategic_question: str, company_name: str = None):
+async def run_simulation(
+    company: str,
+    industry: str,
+    strategic_question: str,
+    company_name: str = None,
+    ticker: str = None,
+    country_code: str = None,
+):
     print(f"\n{'='*60}")
     print(f"AI STRATEGY SIMULATOR")
     print(f"Company: {company}")
@@ -13,7 +20,12 @@ async def run_simulation(company: str, industry: str, strategic_question: str, c
     print(f"{'='*60}\n")
 
     # Run all agents
-    state = await run_orchestrator(company, industry, strategic_question, company_name=company_name)
+    state = await run_orchestrator(
+        company, industry, strategic_question,
+        company_name=company_name,
+        ticker=ticker,
+        country_code=country_code,
+    )
 
     # Synthesize
     print("🧠 Running Synthesis Layer...")
@@ -42,6 +54,8 @@ async def run_simulation(company: str, industry: str, strategic_question: str, c
     }
     if state.ethics:
         output["ethics"] = state.ethics.model_dump()
+    if state.market_data:
+        output["market_data"] = state.market_data
 
     with open("reports/output.json", "w") as f:
         json.dump(output, f, indent=2)
@@ -51,7 +65,10 @@ async def run_simulation(company: str, industry: str, strategic_question: str, c
 
 if __name__ == "__main__":
     asyncio.run(run_simulation(
-        company="Bank Audi",
-        industry="Lebanese Banking & Financial Services",
-        strategic_question="Should Bank Audi expand into fintech or defend its core banking position?"
+        company='Bank Audi',
+        industry='Lebanese Banking & Financial Services',
+        strategic_question='Should Bank Audi expand into fintech or defend its core banking position?',
+        company_name='Bank Audi',
+        ticker='',
+        country_code='LB',
     ))

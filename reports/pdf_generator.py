@@ -851,6 +851,209 @@ def build_external(data, styles, charts_dir=None):
     return story
 
 
+def build_market_data_page(data, styles):
+    md = data.get("market_data")
+    if not md:
+        return []
+    quality = md.get("data_quality", {}).get("overall", "None")
+    if quality == "None":
+        return []
+
+    aw = PAGE_W - 2 * MARGIN
+    story = [SectionHeader("MARKET DATA & MACRO INDICATORS"), Spacer(1, 0.25 * cm)]
+
+    story.append(Paragraph(
+        f"Source: Yahoo Finance · Alpha Vantage · World Bank  |  Data Quality: {quality}",
+        styles["small"],
+    ))
+    story.append(Spacer(1, 0.3 * cm))
+
+    def _num(v, mult=1):
+        try:
+            return float(v) * mult
+        except (TypeError, ValueError):
+            return None
+
+    def _fmt_money(v):
+        if v is None:
+            return "—"
+        try:
+            v = float(v)
+        except (TypeError, ValueError):
+            return "—"
+        if abs(v) >= 1e12:
+            return f"${v/1e12:.1f}T"
+        if abs(v) >= 1e9:
+            return f"${v/1e9:.1f}B"
+        if abs(v) >= 1e6:
+            return f"${v/1e6:.1f}M"
+        return f"${v:,.0f}"
+
+    def _fmt_pct(v):
+        if v is None:
+            return "—"
+        try:
+            f = float(v)
+            return f"{f*100:.1f}%" if abs(f) <= 1 else f"{f:.1f}%"
+        except (TypeError, ValueError):
+            return "—"
+
+    def _fmt_num(v, decimals=2):
+        if v is None:
+            return "—"
+        try:
+            return f"{float(v):.{decimals}f}"
+        except (TypeError, ValueError):
+            return "—"
+
+    yahoo_ok = md.get("data_quality", {}).get("yahoo_available", False)
+    av_ok    = md.get("data_quality", {}).get("alpha_vantage_available", False)
+    wb_ok    = md.get("data_quality", {}).get("world_bank_available", False)
+
+    yahoo = md.get("yahoo", {}) or {}
+    av    = md.get("alpha_vantage", {}) or {}
+    wb    = md.get("world_bank", {}) or {}
+
+    # ── Company Financials strip ──────────────────────────────────────────────
+    if yahoo_ok or av_ok:
+        story.append(Paragraph("Company Financials", styles["subsection"]))
+
+        mc_raw    = yahoo.get("market_cap") or av.get("market_capitalization")
+        pe_raw    = yahoo.get("pe_ratio") or av.get("pe_ratio")
+        rev_raw   = yahoo.get("revenue_ttm") or av.get("revenue_ttm")
+        ni_raw    = yahoo.get("net_income_ttm")
+        eps_raw   = av.get("eps")
+        roe_raw   = av.get("return_on_equity_ttm")
+        gm_raw    = yahoo.get("gross_margin")
+        beta_raw  = yahoo.get("beta")
+
+        mc_v   = _fmt_money(mc_raw)
+        pe_v   = _fmt_num(pe_raw, 1)
+        rev_v  = _fmt_money(rev_raw)
+        ni_v   = _fmt_money(ni_raw)
+        eps_v  = _fmt_num(eps_raw, 2)
+        roe_v  = _fmt_pct(roe_raw)
+        gm_v   = _fmt_pct(gm_raw)
+        beta_v = _fmt_num(beta_raw, 2)
+
+        def _kpi_color(label, val_str):
+            if val_str == "—":
+                return NAVY
+            if label in ("Market Cap", "Revenue TTM", "Net Income TTM", "EPS", "Gross Margin", "ROE"):
+                return GREEN
+            if label == "Beta":
+                try:
+                    b = float(val_str)
+                    return AMBER if b > 1.5 else NAVY
+                except ValueError:
+                    return NAVY
+            return NAVY
+
+        headers = ["Market Cap", "P/E Ratio", "Revenue TTM", "Net Income TTM",
+                   "EPS", "ROE", "Gross Margin", "Beta"]
+        values  = [mc_v, pe_v, rev_v, ni_v, eps_v, roe_v, gm_v, beta_v]
+        colors_list = [_kpi_color(h, v) for h, v in zip(headers, values)]
+
+        hdr_cells = [Paragraph(h, styles["kpi_head"]) for h in headers]
+        val_cells = [Paragraph(v, _kpi_val_style(c)) for v, c in zip(values, colors_list)]
+        kpi_ts = TableStyle([
+            ("BACKGROUND",    (0, 0), (-1, 0), NAVY),
+            ("LINEBELOW",     (0, 0), (-1, 0), 1.5, GOLD),
+            ("BACKGROUND",    (0, 1), (-1, 1), BLUEGRAY),
+            ("ALIGN",         (0, 0), (-1, -1), "CENTER"),
+            ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
+            ("TOPPADDING",    (0, 0), (-1, -1), 8),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+            ("GRID",          (0, 0), (-1, -1), 0.4, MGRAY),
+            ("BOX",           (0, 0), (-1, -1), 0.75, MGRAY),
+            ("LINEBELOW",     (0, -1), (-1, -1), 1.5, DGRAY),
+            ("LINEAFTER",     (-1, 0), (-1, -1), 1.5, DGRAY),
+        ])
+        kpi_tbl = Table([hdr_cells, val_cells], colWidths=[aw / 8] * 8)
+        kpi_tbl.setStyle(kpi_ts)
+        story.append(kpi_tbl)
+        story.append(Spacer(1, 0.4 * cm))
+
+    # ── Macro Environment strip ───────────────────────────────────────────────
+    if wb_ok:
+        country_code = md.get("country_code", "")
+        wb_year      = wb.get("year", 2023)
+        story.append(Paragraph(
+            f"Macro Environment (World Bank — {country_code} {wb_year})",
+            styles["subsection"],
+        ))
+
+        gdp_g  = wb.get("gdp_growth_pct")
+        infl   = wb.get("inflation_pct")
+        unemp  = wb.get("unemployment_pct")
+        gdp_pc = wb.get("gdp_per_capita_usd")
+        debt   = wb.get("govt_debt_pct_gdp")
+        fdi    = wb.get("fdi_pct_gdp")
+
+        def _wb_pct(v):
+            if v is None:
+                return "—"
+            try:
+                return f"{float(v):.1f}%"
+            except (TypeError, ValueError):
+                return "—"
+
+        def _gdp_color(v):
+            if v is None:
+                return NAVY
+            try:
+                f = float(v)
+                return GREEN if f > 2 else RED if f < 0 else AMBER
+            except (TypeError, ValueError):
+                return NAVY
+
+        def _infl_color(v):
+            if v is None:
+                return NAVY
+            try:
+                f = float(v)
+                return RED if f > 5 else GREEN if f < 3 else AMBER
+            except (TypeError, ValueError):
+                return NAVY
+
+        wb_headers = ["GDP Growth %", "Inflation %", "Unemployment %",
+                      "GDP per Capita", "Govt Debt % GDP", "FDI % GDP"]
+        wb_values  = [_wb_pct(gdp_g), _wb_pct(infl), _wb_pct(unemp),
+                      _fmt_money(gdp_pc), _wb_pct(debt), _wb_pct(fdi)]
+        wb_colors  = [
+            _gdp_color(gdp_g), _infl_color(infl), NAVY,
+            NAVY, NAVY, NAVY,
+        ]
+
+        wb_hdr_cells = [Paragraph(h, styles["kpi_head"]) for h in wb_headers]
+        wb_val_cells = [Paragraph(v, _kpi_val_style(c)) for v, c in zip(wb_values, wb_colors)]
+        wb_kpi_ts = TableStyle([
+            ("BACKGROUND",    (0, 0), (-1, 0), NAVY),
+            ("LINEBELOW",     (0, 0), (-1, 0), 1.5, GOLD),
+            ("BACKGROUND",    (0, 1), (-1, 1), BLUEGRAY),
+            ("ALIGN",         (0, 0), (-1, -1), "CENTER"),
+            ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
+            ("TOPPADDING",    (0, 0), (-1, -1), 8),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+            ("GRID",          (0, 0), (-1, -1), 0.4, MGRAY),
+            ("BOX",           (0, 0), (-1, -1), 0.75, MGRAY),
+            ("LINEBELOW",     (0, -1), (-1, -1), 1.5, DGRAY),
+            ("LINEAFTER",     (-1, 0), (-1, -1), 1.5, DGRAY),
+        ])
+        wb_tbl = Table([wb_hdr_cells, wb_val_cells], colWidths=[aw / 6] * 6)
+        wb_tbl.setStyle(wb_kpi_ts)
+        story.append(wb_tbl)
+        story.append(Spacer(1, 0.4 * cm))
+
+    story.append(Paragraph(
+        "<i>Data sourced from Yahoo Finance, Alpha Vantage, and World Bank Open Data. "
+        "Figures represent most recently available data. All financial figures in USD.</i>",
+        styles["small"],
+    ))
+    story.append(PageBreak())
+    return story
+
+
 def build_internal(data, styles):
     internal = data.get("internal", {})
     story = [SectionHeader("Internal Audit",
@@ -1946,6 +2149,9 @@ def generate_report(json_path: str, output_path: str) -> None:
 
     # 4. External Environment
     story += build_external(data, styles, charts_dir)
+
+    # 4b. Market Data & Macro Indicators
+    story += build_market_data_page(data, styles)
 
     # 5. Internal Audit
     story += build_internal(data, styles)

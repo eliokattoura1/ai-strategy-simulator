@@ -121,6 +121,7 @@ async def run_finance_agent(
     formulation_output: FormulationAgentOutput,
     execution_output: ExecutionAgentOutput,
     context: str = None,
+    market_data: str = None,
 ) -> FinanceAgentOutput:
 
     if context:
@@ -133,6 +134,13 @@ async def run_finance_agent(
         system_content = (
             f"REAL COMPANY DATA (use this in your analysis):\n{context}\n\n---\n\n"
             f"Prioritize this data over general knowledge.\n\n{system_content}"
+        )
+    if market_data:
+        system_content = (
+            f"VERIFIED FINANCIAL DATA FROM YAHOO FINANCE & "
+            f"ALPHA VANTAGE (use these exact figures — do NOT "
+            f"invent alternative numbers):\n{market_data}"
+            f"\n\n---\n\n{system_content}"
         )
 
     prompt = f"""

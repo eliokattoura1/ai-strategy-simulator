@@ -1,0 +1,8 @@
+openai
+anthropic
+streamlit
+python-dotenv
+reportlab
+requests
+yfinance
+wbgapi

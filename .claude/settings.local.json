@@ -6,7 +6,8 @@
       "Bash(python *)",
       "Bash(dir /b *.png)",
       "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\eliok\\\\Documents\\\\Ai Strategy Simulator\" -Recurse -File)",
-      "Bash(Select-Object -ExpandProperty FullName)"
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Get-Content *)"
     ]
   }
 }

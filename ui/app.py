@@ -793,6 +793,25 @@ def page_run():
                 placeholder="e.g. Lebanese Banking & Financial Services", key="input_industry",
                 label_visibility="collapsed",
             )
+        col_ticker, col_country = st.columns(2)
+        with col_ticker:
+            st.markdown('<div class="field-label">Stock Ticker (optional)</div>', unsafe_allow_html=True)
+            ticker = st.text_input(
+                "Stock Ticker (optional)",
+                placeholder="e.g. AUDI.BY or AAPL",
+                key="input_ticker",
+                label_visibility="collapsed",
+                help="Yahoo Finance & Alpha Vantage ticker for real financial data",
+            )
+        with col_country:
+            st.markdown('<div class="field-label">World Bank Country Code (optional)</div>', unsafe_allow_html=True)
+            country_code = st.text_input(
+                "World Bank Country Code (optional)",
+                placeholder="e.g. LB for Lebanon, US for United States",
+                key="input_country_code",
+                label_visibility="collapsed",
+                help="2-letter World Bank country code for macro data",
+            )
         st.markdown('<div class="field-label">Strategic Question</div>', unsafe_allow_html=True)
         question = st.text_area(
             "Strategic Question", value=st.session_state.sim_question,
@@ -933,12 +952,17 @@ def page_run():
         status_slot = st.empty()
         status_slot.info("Generating PDF report and charts…")
         try:
+            _ticker_val       = ticker.strip() if ticker else None
+            _country_code_val = country_code.strip() if country_code else None
+
             # Agents already ran above — now run full pipeline for JSON + reports
             async def _save_reports():
                 import main as _main
                 state, synth = await _main.run_simulation(
                     company.strip(), industry.strip(), question.strip(),
                     company_name=rag_company,
+                    ticker=_ticker_val,
+                    country_code=_country_code_val,
                 )
                 return state, synth
 
@@ -1053,6 +1077,102 @@ def page_results():
                             letter-spacing:0.5px; margin-top:2px;">{label}</div>
             </div>
             """, unsafe_allow_html=True)
+
+    # ── Live Market Data card ──────────────────────────────────────────────
+    md = d.get("market_data")
+    if md and md.get("data_quality", {}).get("overall", "None") != "None":
+        _dq     = md["data_quality"]
+        _qual   = _dq.get("overall", "Partial")
+        _yahoo  = md.get("yahoo", {}) or {}
+        _av     = md.get("alpha_vantage", {}) or {}
+        _wb     = md.get("world_bank", {}) or {}
+
+        def _md_money(v):
+            try:
+                v = float(v)
+            except (TypeError, ValueError):
+                return "—"
+            if abs(v) >= 1e9:
+                return f"${v/1e9:.1f}B"
+            if abs(v) >= 1e6:
+                return f"${v/1e6:.1f}M"
+            return f"${v:,.0f}"
+
+        def _md_pct(v):
+            try:
+                f = float(v)
+                return f"{f*100:.1f}%" if abs(f) <= 1 else f"{f:.1f}%"
+            except (TypeError, ValueError):
+                return "—"
+
+        qual_color = GREEN if _qual == "Full" else AMBER if _qual == "Partial" else RED
+        st.markdown(f"""
+        <div class="card card-accent" style="margin-bottom:0.7rem;">
+            <div style="display:flex; align-items:center; gap:0.7rem; margin-bottom:0.8rem;">
+                <span style="font-weight:700; color:#1B2A4A; font-size:1rem;">📡 Live Market Data</span>
+                <span style="background:{qual_color}; color:#fff; font-weight:700; font-size:0.72rem;
+                             padding:2px 10px; border-radius:20px;">{_qual}</span>
+            </div>
+        """, unsafe_allow_html=True)
+
+        _mc1, _mc2 = st.columns(2)
+
+        with _mc1:
+            if _dq.get("yahoo_available") or _dq.get("alpha_vantage_available"):
+                st.markdown('<div style="font-size:0.75rem;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.4rem;">Company Financials</div>', unsafe_allow_html=True)
+                _fin_rows = [
+                    ("Market Cap",    _md_money(_yahoo.get("market_cap") or _av.get("market_capitalization"))),
+                    ("P/E Ratio",     str(_yahoo.get("pe_ratio") or _av.get("pe_ratio") or "—")),
+                    ("Revenue (TTM)", _md_money(_yahoo.get("revenue_ttm") or _av.get("revenue_ttm"))),
+                    ("Net Income",    _md_money(_yahoo.get("net_income_ttm"))),
+                    ("EPS",           str(_av.get("eps") or "—")),
+                    ("ROE",           _md_pct(_av.get("return_on_equity_ttm"))),
+                    ("Gross Margin",  _md_pct(_yahoo.get("gross_margin"))),
+                    ("Beta",          str(_yahoo.get("beta") or "—")),
+                ]
+                for label, val in _fin_rows:
+                    st.markdown(
+                        f'<div style="display:flex;justify-content:space-between;padding:3px 0;'
+                        f'border-bottom:1px solid #F0F2F8;">'
+                        f'<span style="color:#6B7280;font-size:0.82rem;">{label}</span>'
+                        f'<span style="color:#1B2A4A;font-weight:700;font-size:0.82rem;">{val}</span>'
+                        f'</div>',
+                        unsafe_allow_html=True,
+                    )
+
+        with _mc2:
+            if _dq.get("world_bank_available"):
+                st.markdown('<div style="font-size:0.75rem;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.4rem;">Macro Indicators</div>', unsafe_allow_html=True)
+
+                def _wb_pct(v):
+                    try:
+                        return f"{float(v):.1f}%"
+                    except (TypeError, ValueError):
+                        return "—"
+
+                _wb_rows = [
+                    ("GDP Growth",        _wb_pct(_wb.get("gdp_growth_pct"))),
+                    ("Inflation",         _wb_pct(_wb.get("inflation_pct"))),
+                    ("Unemployment",      _wb_pct(_wb.get("unemployment_pct"))),
+                    ("GDP per Capita",    _md_money(_wb.get("gdp_per_capita_usd"))),
+                    ("Govt Debt % GDP",   _wb_pct(_wb.get("govt_debt_pct_gdp"))),
+                    ("FDI % GDP",         _wb_pct(_wb.get("fdi_pct_gdp"))),
+                ]
+                for label, val in _wb_rows:
+                    st.markdown(
+                        f'<div style="display:flex;justify-content:space-between;padding:3px 0;'
+                        f'border-bottom:1px solid #F0F2F8;">'
+                        f'<span style="color:#6B7280;font-size:0.82rem;">{label}</span>'
+                        f'<span style="color:#1B2A4A;font-weight:700;font-size:0.82rem;">{val}</span>'
+                        f'</div>',
+                        unsafe_allow_html=True,
+                    )
+
+        st.markdown(
+            '<div style="color:#9CA3AF;font-size:0.7rem;margin-top:0.6rem;">'
+            'Sources: Yahoo Finance · Alpha Vantage · World Bank Open Data</div></div>',
+            unsafe_allow_html=True,
+        )
 
     # ── Executive Summary ──────────────────────────────────────────────────
     with st.expander("📝  Executive Summary", expanded=True):

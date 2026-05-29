@@ -24,7 +24,13 @@ PESTEL must include all 6 factors.
 Scores are floats between 0 and 100 for attractiveness, 0-10 for porter forces.
 No markdown, no explanation, no extra fields. Return raw JSON only."""
 
-async def run_external_agent(company: str, industry: str, strategic_question: str, context: str = None) -> ExternalAgentOutput:
+async def run_external_agent(
+    company: str,
+    industry: str,
+    strategic_question: str,
+    context: str = None,
+    market_data: str = None,
+) -> ExternalAgentOutput:
     if context:
         print(f"[ExternalAgent] RAG context received ({len(context)} chars): {context[:200]!r}")
     else:
@@ -32,6 +38,12 @@ async def run_external_agent(company: str, industry: str, strategic_question: st
     system_content = EXTERNAL_SYSTEM_PROMPT
     if context:
         system_content = f"REAL COMPANY DATA (use this in your analysis):\n{context}\n\n---\n\nPrioritize this data over general knowledge.\n\n{system_content}"
+    if market_data:
+        system_content = (
+            f"VERIFIED MACRO DATA FROM WORLD BANK "
+            f"(use these exact figures in PESTEL Economic section):"
+            f"\n{market_data}\n\n---\n\n{system_content}"
+        )
     prompt = f"""
 Company: {company}
 Industry: {industry}

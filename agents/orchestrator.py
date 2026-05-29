@@ -33,6 +33,7 @@ class SimulatorState:
     ethics: EthicsAgentOutput = None
     execution: ExecutionAgentOutput = None
     finance: FinanceAgentOutput = None
+    market_data: dict = None
 
 def _build_rag_fetcher(company_name: str):
     """Return a context-fetching function if RAG is available, else a no-op."""
@@ -50,12 +51,27 @@ async def run_orchestrator(
     industry: str,
     strategic_question: str,
     company_name: str = None,
+    ticker: str = None,
+    country_code: str = None,
 ) -> SimulatorState:
     state = SimulatorState(
         company=company,
         industry=industry,
         strategic_question=strategic_question
     )
+
+    market_data_str = ""
+    if ticker or country_code:
+        try:
+            from data_layer.market_data import get_all_market_data, format_for_agent_prompt
+            print(f"📡 Fetching market data: ticker={ticker} country={country_code}...")
+            md = get_all_market_data(ticker or "", country_code or "")
+            state.market_data = md
+            market_data_str = format_for_agent_prompt(md)
+            quality = md.get("data_quality", {}).get("overall", "None")
+            print(f"📡 Market data quality: {quality}")
+        except Exception as e:
+            print(f"📡 Market data fetch failed: {e}")
 
     fetch = _build_rag_fetcher(company_name) if company_name else (lambda q: None)
 
@@ -64,6 +80,7 @@ async def run_orchestrator(
         run_external_agent(
             company, industry, strategic_question,
             context=fetch("external environment PESTEL market trends competition regulatory political economic"),
+            market_data=market_data_str,
         ),
         run_internal_agent(
             company, industry, strategic_question,
@@ -126,6 +143,7 @@ async def run_orchestrator(
         company, industry, strategic_question,
         state.formulation, state.execution,
         context=fetch("financial performance revenue EBITDA cash flow valuation cap table funding burn rate"),
+        market_data=market_data_str,
     )
 
     print("✅ All agents complete.")
