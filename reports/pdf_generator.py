@@ -4,6 +4,7 @@ Entry point: generate_report(json_path, output_path)
 """
 
 import json
+import math
 import os
 import sys
 from datetime import datetime
@@ -20,6 +21,8 @@ from reportlab.platypus import (
 from reportlab.platypus.flowables import Flowable
 from reportlab.graphics.shapes import Drawing, Rect, String, Line, Circle
 from reportlab.graphics import renderPDF
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 
 # ── Colour palette ────────────────────────────────────────────────────────────
 NAVY  = colors.HexColor("#1B2A4A")
@@ -29,16 +32,37 @@ LGRAY = colors.HexColor("#F4F5F7")
 MGRAY = colors.HexColor("#D0D3DA")
 DGRAY = colors.HexColor("#6B7280")
 
-ROW_ALT = colors.HexColor("#F5F5F5")
+# Slightly blue-tinted alternating row colour
+BLUEGRAY = colors.HexColor("#F0F3F8")
+ROW_ALT  = BLUEGRAY
+
+# Semantic colours
+GREEN = colors.HexColor("#1A7A4A")
+AMBER = colors.HexColor("#B8860B")
+RED   = colors.HexColor("#B22222")
 
 # VRIO colours
-SCA_COLOR = colors.HexColor("#1A7A4A")   # green
-TCA_COLOR = colors.HexColor("#B8860B")   # dark gold / yellow
+SCA_COLOR = GREEN
+TCA_COLOR = AMBER
 CP_COLOR  = colors.HexColor("#C15B1E")   # orange
-CD_COLOR  = colors.HexColor("#B22222")   # red
+CD_COLOR  = RED
 
 PAGE_W, PAGE_H = A4
 MARGIN = 2.2 * cm
+
+# ── Unicode arrow support (Windows Arial fall-back to ASCII) ────────────────────
+ARROW_FONT = "Helvetica"
+for _fp in (r"C:\Windows\Fonts\arial.ttf", r"C:\Windows\Fonts\Arial.ttf"):
+    try:
+        pdfmetrics.registerFont(TTFont("ArialU", _fp))
+        ARROW_FONT = "ArialU"
+        break
+    except Exception:
+        continue
+
+UP_ARROW   = "▲" if ARROW_FONT != "Helvetica" else "+"
+DOWN_ARROW = "▼" if ARROW_FONT != "Helvetica" else "-"
+
 
 # ── Styles ────────────────────────────────────────────────────────────────────
 
@@ -50,11 +74,11 @@ def build_styles():
         s[name] = ParagraphStyle(name, **kw)
 
     ps("cover_company",  fontName="Helvetica-Bold", fontSize=28,
-       textColor=WHITE, alignment=TA_CENTER, spaceAfter=6)
+       textColor=WHITE, alignment=TA_CENTER, spaceAfter=6, leading=32)
     ps("cover_industry", fontName="Helvetica", fontSize=14,
-       textColor=GOLD, alignment=TA_CENTER, spaceAfter=4)
-    ps("cover_question", fontName="Helvetica", fontSize=11,
-       textColor=LGRAY, alignment=TA_CENTER, spaceAfter=4, leading=16)
+       textColor=GOLD, alignment=TA_CENTER, spaceAfter=4, leading=18)
+    ps("cover_question", fontName="Helvetica", fontSize=12,
+       textColor=WHITE, alignment=TA_CENTER, spaceAfter=4, leading=17)
     ps("cover_date",     fontName="Helvetica", fontSize=10,
        textColor=MGRAY, alignment=TA_CENTER)
     ps("cover_conf",     fontName="Helvetica-Bold", fontSize=9,
@@ -62,25 +86,32 @@ def build_styles():
 
     ps("section_header", fontName="Helvetica-Bold", fontSize=13,
        textColor=GOLD, alignment=TA_LEFT, spaceAfter=6, spaceBefore=4)
-    ps("subsection",     fontName="Helvetica-Bold", fontSize=10,
+    ps("subsection",     fontName="Helvetica-Bold", fontSize=11,
        textColor=NAVY, alignment=TA_LEFT, spaceAfter=4, spaceBefore=6)
-    ps("body",           fontName="Helvetica", fontSize=9,
+    ps("body",           fontName="Helvetica", fontSize=9.5,
        textColor=colors.HexColor("#1C1C1C"), alignment=TA_JUSTIFY,
-       leading=13, spaceAfter=4)
-    ps("body_center",    fontName="Helvetica", fontSize=9,
-       textColor=colors.HexColor("#1C1C1C"), alignment=TA_CENTER, leading=13)
-    ps("body_bold",      fontName="Helvetica-Bold", fontSize=9,
-       textColor=NAVY, alignment=TA_LEFT, leading=13)
-    ps("small",          fontName="Helvetica", fontSize=7.5,
-       textColor=DGRAY, alignment=TA_LEFT, leading=10)
-    ps("small_center",   fontName="Helvetica", fontSize=7.5,
-       textColor=DGRAY, alignment=TA_CENTER, leading=10)
+       leading=14, spaceAfter=4)
+    ps("body_center",    fontName="Helvetica", fontSize=9.5,
+       textColor=colors.HexColor("#1C1C1C"), alignment=TA_CENTER, leading=14)
+    ps("body_bold",      fontName="Helvetica-Bold", fontSize=9.5,
+       textColor=NAVY, alignment=TA_LEFT, leading=14)
+    ps("small",          fontName="Helvetica", fontSize=8,
+       textColor=DGRAY, alignment=TA_LEFT, leading=11)
+    ps("small_center",   fontName="Helvetica", fontSize=8,
+       textColor=DGRAY, alignment=TA_CENTER, leading=11)
     ps("table_header",   fontName="Helvetica-Bold", fontSize=8.5,
        textColor=WHITE, alignment=TA_CENTER, leading=11)
-    ps("table_cell",     fontName="Helvetica", fontSize=8,
-       textColor=colors.black, alignment=TA_LEFT, leading=11)
-    ps("table_cell_c",   fontName="Helvetica", fontSize=8,
-       textColor=colors.black, alignment=TA_CENTER, leading=11)
+    ps("table_cell",     fontName="Helvetica", fontSize=8.5,
+       textColor=colors.black, alignment=TA_LEFT, leading=12)
+    ps("table_cell_c",   fontName="Helvetica", fontSize=8.5,
+       textColor=colors.black, alignment=TA_CENTER, leading=12)
+    # White category-label cells for navy first columns
+    ps("cell_label",     fontName="Helvetica-Bold", fontSize=8.5,
+       textColor=WHITE, alignment=TA_LEFT, leading=12)
+    ps("cell_label_c",   fontName="Helvetica-Bold", fontSize=8.5,
+       textColor=WHITE, alignment=TA_CENTER, leading=12)
+    ps("kpi_head",       fontName="Helvetica-Bold", fontSize=11,
+       textColor=WHITE, alignment=TA_CENTER, leading=13)
     ps("score_label",    fontName="Helvetica-Bold", fontSize=22,
        textColor=WHITE, alignment=TA_CENTER)
     ps("score_sub",      fontName="Helvetica", fontSize=9,
@@ -88,70 +119,130 @@ def build_styles():
     ps("narrative",      fontName="Helvetica", fontSize=9.5,
        textColor=colors.HexColor("#1C1C1C"), alignment=TA_JUSTIFY,
        leading=15, spaceAfter=6)
-    ps("toc_entry",      fontName="Helvetica", fontSize=9,
-       textColor=NAVY, alignment=TA_LEFT, leading=13)
+    ps("toc_name",       fontName="Helvetica-Bold", fontSize=10.5,
+       textColor=NAVY, alignment=TA_LEFT, leading=16)
+    ps("toc_desc",       fontName="Helvetica", fontSize=9,
+       textColor=DGRAY, alignment=TA_RIGHT, leading=16)
+    ps("toc_name_hl",    fontName="Helvetica-Bold", fontSize=10.5,
+       textColor=GOLD, alignment=TA_LEFT, leading=16)
+    ps("toc_desc_hl",    fontName="Helvetica-Oblique", fontSize=9,
+       textColor=GOLD, alignment=TA_RIGHT, leading=16)
     ps("page_num",       fontName="Helvetica", fontSize=8,
        textColor=DGRAY, alignment=TA_CENTER)
     return s
 
 
+def _kpi_val_style(color):
+    return ParagraphStyle("kpi_val", fontName="Helvetica-Bold", fontSize=13,
+                          textColor=color, alignment=TA_CENTER, leading=15)
+
+
 # ── Custom Flowables ──────────────────────────────────────────────────────────
 
 class SectionHeader(Flowable):
-    """Navy banner with gold text for section titles."""
-    def __init__(self, text, width=None):
+    """Navy banner with gold left accent bar, white title and optional score badge."""
+    def __init__(self, text, score=None, width=None):
         super().__init__()
         self.text = text
+        self.score = score
         self._width = width or (PAGE_W - 2 * MARGIN)
-        self.height = 22
-
-    def draw(self):
-        self.canv.setFillColor(NAVY)
-        self.canv.rect(0, 0, self._width, self.height, fill=1, stroke=0)
-        self.canv.setFillColor(GOLD)
-        self.canv.setFont("Helvetica-Bold", 11)
-        self.canv.drawString(8, 6, self.text.upper())
+        self.height = 28
 
     def wrap(self, availW, availH):
         self._width = availW
         return availW, self.height
 
+    def _score_val(self):
+        try:
+            if self.score is None or self.score == "":
+                return None
+            return int(round(float(self.score)))
+        except (TypeError, ValueError):
+            return None
+
+    def draw(self):
+        c = self.canv
+        w, h = self._width, self.height
+        # Navy banner
+        c.setFillColor(NAVY)
+        c.rect(0, 0, w, h, fill=1, stroke=0)
+        # Gold left accent bar (4pt, full height)
+        c.setFillColor(GOLD)
+        c.rect(0, 0, 4, h, fill=1, stroke=0)
+        # Title
+        c.setFillColor(WHITE)
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(14, h / 2 - 4, self.text.upper())
+        # Inline score badge on the right
+        sv = self._score_val()
+        if sv is not None:
+            r = 11
+            cx, cy = w - r - 10, h / 2
+            c.setStrokeColor(GOLD)
+            c.setLineWidth(2)
+            c.circle(cx, cy, r, fill=0, stroke=1)
+            c.setFillColor(GOLD)
+            c.setFont("Helvetica-Bold", 10)
+            c.drawCentredString(cx, cy - 3.5, str(sv))
+
 
 class ScoreBadge(Flowable):
-    """Circular badge showing a numeric score."""
+    """Circular gauge-style badge showing a numeric score with colour coding."""
     def __init__(self, score, label="Strategic Fit Score", size=90):
         super().__init__()
         self.score = score
         self.label = label
         self.size = size
         self.width = size
-        self.height = size + 16
-
-    def draw(self):
-        r = self.size / 2
-        cx, cy = r, r + 8
-        # Shadow
-        self.canv.setFillColor(colors.HexColor("#C0C4CC"))
-        self.canv.circle(cx + 2, cy - 2, r, fill=1, stroke=0)
-        # Main circle
-        self.canv.setFillColor(NAVY)
-        self.canv.circle(cx, cy, r, fill=1, stroke=0)
-        # Gold ring
-        self.canv.setStrokeColor(GOLD)
-        self.canv.setLineWidth(3)
-        self.canv.circle(cx, cy, r - 3, fill=0, stroke=1)
-        # Score text
-        self.canv.setFillColor(WHITE)
-        self.canv.setFont("Helvetica-Bold", 24)
-        txt = str(int(self.score))
-        self.canv.drawCentredString(cx, cy - 8, txt)
-        # Sub-label
-        self.canv.setFillColor(GOLD)
-        self.canv.setFont("Helvetica", 6.5)
-        self.canv.drawCentredString(cx, cy - 20, self.label)
+        self.height = size + 18
 
     def wrap(self, availW, availH):
         return self.width, self.height
+
+    def draw(self):
+        c = self.canv
+        try:
+            val = float(self.score)
+        except (TypeError, ValueError):
+            val = 0
+        r = self.size / 2 - 2
+        cx = self.size / 2
+        cy = self.height - self.size / 2 - 2
+
+        hint = GREEN if val >= 75 else AMBER if val >= 50 else RED
+
+        # Shadow
+        c.setFillColor(colors.HexColor("#C0C4CC"))
+        c.circle(cx + 2, cy - 2, r, fill=1, stroke=0)
+        # Main navy disc
+        c.setFillColor(NAVY)
+        c.circle(cx, cy, r, fill=1, stroke=0)
+        # Inner colour-coded glow hint
+        c.saveState()
+        c.setFillAlpha(0.30)
+        c.setFillColor(hint)
+        c.circle(cx, cy, r * 0.62, fill=1, stroke=0)
+        c.restoreState()
+        # Gauge tick marks
+        c.setStrokeColor(GOLD)
+        c.setLineWidth(0.8)
+        for i in range(12):
+            a = math.radians(i * 30)
+            ca, sa = math.cos(a), math.sin(a)
+            c.line(cx + (r - 1) * ca, cy + (r - 1) * sa,
+                   cx + (r - 5) * ca, cy + (r - 5) * sa)
+        # Gold ring
+        c.setStrokeColor(GOLD)
+        c.setLineWidth(3)
+        c.circle(cx, cy, r - 1, fill=0, stroke=1)
+        # Score number
+        c.setFillColor(WHITE)
+        c.setFont("Helvetica-Bold", 26)
+        c.drawCentredString(cx, cy - 9, str(int(val)))
+        # Label below
+        c.setFillColor(GOLD)
+        c.setFont("Helvetica-Bold", 7)
+        c.drawCentredString(cx, cy - r - 11, self.label.upper())
 
 
 class BarChart(Flowable):
@@ -190,7 +281,6 @@ class BarChart(Flowable):
             # Label
             c.setFont("Helvetica", 8)
             c.setFillColor(NAVY)
-            # truncate label
             lbl = label if len(label) <= 22 else label[:21] + "…"
             c.drawRightString(label_w - 4, y + 4, lbl)
 
@@ -251,9 +341,7 @@ class AnsoffMatrix(Flowable):
 
         titles = {(0,0):"Market Penetration", (1,0):"Market Development",
                   (0,1):"Product Development", (1,1):"Diversification"}
-        risk_colors = {"low": colors.HexColor("#1A7A4A"),
-                       "medium": colors.HexColor("#B8860B"),
-                       "high": colors.HexColor("#B22222")}
+        risk_colors = {"low": GREEN, "medium": AMBER, "high": RED}
         bg_colors = {(0,0): colors.HexColor("#E8F4EC"),
                      (1,0): colors.HexColor("#FFF8E8"),
                      (0,1): colors.HexColor("#FFF0E8"),
@@ -266,7 +354,6 @@ class AnsoffMatrix(Flowable):
         c.setFillColor(NAVY)
         c.drawCentredString(ox + cw/2, h - 12, "Existing Products")
         c.drawCentredString(ox + cw + cw/2, h - 12, "New Products")
-        # Y axis labels (rotated)
         c.saveState()
         c.translate(12, oy + ch/2)
         c.rotate(90)
@@ -282,29 +369,25 @@ class AnsoffMatrix(Flowable):
             for row in range(2):
                 x = ox + col * cw
                 y = oy + row * ch
-                # Background
                 c.setFillColor(bg_colors[(col, row)])
                 c.rect(x, y, cw, ch, fill=1, stroke=0)
-                # Border
                 c.setStrokeColor(NAVY)
                 c.setLineWidth(0.5)
                 c.rect(x, y, cw, ch, fill=0, stroke=1)
-                # Title
                 c.setFont("Helvetica-Bold", 7.5)
                 c.setFillColor(NAVY)
                 c.drawCentredString(x + cw/2, y + ch - 12, titles[(col, row)])
-                # Initiative text
                 init, risk = grid[(col, row)]
                 if init:
                     c.setFont("Helvetica", 6.5)
                     c.setFillColor(colors.HexColor("#333333"))
                     words = init.split()
                     lines, line = [], []
-                    for w in words:
-                        line.append(w)
+                    for wd in words:
+                        line.append(wd)
                         if len(" ".join(line)) > 22:
                             lines.append(" ".join(line[:-1]))
-                            line = [w]
+                            line = [wd]
                     if line:
                         lines.append(" ".join(line))
                     ty = y + ch - 26
@@ -329,18 +412,15 @@ class StrategyClockFlowable(Flowable):
         return self._w, self._h
 
     def draw(self):
-        import math
         c = self.canv
         cx, cy = self._w / 2, self._h / 2
         r = min(cx, cy) - 20
 
-        # Outer circle
         c.setStrokeColor(NAVY)
         c.setLineWidth(1.5)
         c.setFillColor(LGRAY)
         c.circle(cx, cy, r, fill=1, stroke=1)
 
-        # 8 position labels around clock
         clock_labels = {
             1: "No Frills", 2: "Low Price", 3: "Hybrid",
             4: "Differentiation", 5: "Focused Diff.",
@@ -354,7 +434,6 @@ class StrategyClockFlowable(Flowable):
             c.setFillColor(DGRAY)
             c.drawCentredString(lx, ly - 3, f"{pos_num}. {label}")
 
-        # Highlight active positions
         for p in self.positions:
             pos_num = p.get("position", 4)
             angle = math.radians(90 - (pos_num - 1) * 45)
@@ -366,10 +445,9 @@ class StrategyClockFlowable(Flowable):
             c.setFillColor(NAVY)
             c.drawCentredString(px, py - 3, str(pos_num))
 
-        # Center label
         c.setFont("Helvetica-Bold", 7)
         c.setFillColor(NAVY)
-        c.drawCentredString(cx, cy - 3, "Strategy\nClock")
+        c.drawCentredString(cx, cy - 3, "Strategy")
 
 
 # ── Page decorators ───────────────────────────────────────────────────────────
@@ -377,67 +455,112 @@ class StrategyClockFlowable(Flowable):
 def _header_footer(canvas, doc):
     canvas.saveState()
     pw, ph = A4
+    company  = getattr(doc, "_company", "")
+    date_str = getattr(doc, "_date", "")
+    section  = getattr(doc, "_section", "")
 
-    # Top line
+    # Logo placeholder (top-right): navy box with gold caption
+    lw, lh = 2.6 * cm, 0.75 * cm
+    lx = pw - MARGIN - lw
+    ly = ph - 0.7 * cm - lh
+    canvas.setFillColor(NAVY)
     canvas.setStrokeColor(GOLD)
-    canvas.setLineWidth(1.5)
-    canvas.line(MARGIN, ph - 1.4 * cm, pw - MARGIN, ph - 1.4 * cm)
+    canvas.setLineWidth(0.8)
+    canvas.rect(lx, ly, lw, lh, fill=1, stroke=1)
+    canvas.setFillColor(GOLD)
+    canvas.setFont("Helvetica-Bold", 6.5)
+    canvas.drawCentredString(lx + lw / 2, ly + lh / 2 - 2.5, "COMPANY LOGO")
 
-    # Logo placeholder (top-right)
-    logo_w, logo_h = 2.8 * cm, 0.9 * cm
-    lx = pw - MARGIN - logo_w
-    ly = ph - MARGIN * 0.55 - logo_h
-    canvas.setFillColor(LGRAY)
-    canvas.setStrokeColor(MGRAY)
-    canvas.setLineWidth(0.5)
-    canvas.rect(lx, ly, logo_w, logo_h, fill=1, stroke=1)
-    canvas.setFont("Helvetica", 6)
+    # Header text row
+    ty = ph - 1.95 * cm
+    canvas.setFont("Helvetica-Bold", 7)
+    canvas.setFillColor(GOLD)
+    canvas.drawString(MARGIN, ty, "CONFIDENTIAL")
+    canvas.setFont("Helvetica", 7.5)
     canvas.setFillColor(DGRAY)
-    canvas.drawCentredString(lx + logo_w / 2, ly + logo_h / 2 - 2, "COMPANY LOGO")
+    canvas.drawCentredString(pw / 2, ty, "AI Strategy Simulator")
+    canvas.setFont("Helvetica-Bold", 7.5)
+    canvas.setFillColor(NAVY)
+    canvas.drawRightString(pw - MARGIN, ty, company)
 
-    # Bottom line + page number
+    # Gold header line
+    canvas.setStrokeColor(GOLD)
+    canvas.setLineWidth(1.2)
+    canvas.line(MARGIN, ph - 2.15 * cm, pw - MARGIN, ph - 2.15 * cm)
+
+    # Navy footer line
     canvas.setStrokeColor(NAVY)
     canvas.setLineWidth(0.8)
     canvas.line(MARGIN, 1.5 * cm, pw - MARGIN, 1.5 * cm)
-    canvas.setFont("Helvetica", 8)
-    canvas.setFillColor(DGRAY)
-    canvas.drawCentredString(pw / 2, 0.8 * cm, f"— {doc.page} —")
 
-    # Confidential footer text
-    canvas.setFont("Helvetica", 7)
-    canvas.setFillColor(MGRAY)
-    canvas.drawString(MARGIN, 0.8 * cm, "CONFIDENTIAL")
-    canvas.drawRightString(pw - MARGIN, 0.8 * cm, "AI Strategy Simulator")
+    # Footer: date left, page centre, section right
+    canvas.setFont("Helvetica", 7.5)
+    canvas.setFillColor(DGRAY)
+    canvas.drawString(MARGIN, 0.95 * cm, date_str)
+    canvas.drawRightString(pw - MARGIN, 0.95 * cm, section)
+    canvas.setFont("Helvetica-Bold", 8)
+    canvas.setFillColor(NAVY)
+    canvas.drawCentredString(pw / 2, 0.95 * cm, f"— {doc.page} —")
 
     canvas.restoreState()
 
 
 def _cover_page(canvas, doc):
-    """Cover page — all content rendered as flowables; no canvas drawing."""
-    pass
+    """Full navy cover background with gold rules and confidential marks."""
+    canvas.saveState()
+    pw, ph = A4
+    # Full navy background
+    canvas.setFillColor(NAVY)
+    canvas.rect(0, 0, pw, ph, fill=1, stroke=0)
+    # Gold top & bottom rules (3pt)
+    canvas.setStrokeColor(GOLD)
+    canvas.setLineWidth(3)
+    canvas.line(MARGIN, ph - 0.9 * cm, pw - MARGIN, ph - 0.9 * cm)
+    canvas.line(MARGIN, 1.0 * cm, pw - MARGIN, 1.0 * cm)
+    # CONFIDENTIAL top-right
+    canvas.setFillColor(GOLD)
+    canvas.setFont("Helvetica-Bold", 8)
+    canvas.drawRightString(pw - MARGIN, ph - 1.35 * cm, "CONFIDENTIAL")
+    # POWERED BY bottom-centre
+    canvas.drawCentredString(pw / 2, 0.6 * cm, "POWERED BY MULTI-AGENT AI")
+    canvas.restoreState()
 
 
 # ── Table helpers ─────────────────────────────────────────────────────────────
 
-def std_table_style(header_rows=1, col_widths=None):
-    return TableStyle([
+def std_table_style(header_rows=1, col_widths=None, first_col=True):
+    ts = TableStyle([
+        # Header
         ("BACKGROUND",  (0, 0), (-1, header_rows - 1), NAVY),
         ("TEXTCOLOR",   (0, 0), (-1, header_rows - 1), WHITE),
         ("FONTNAME",    (0, 0), (-1, header_rows - 1), "Helvetica-Bold"),
         ("FONTSIZE",    (0, 0), (-1, header_rows - 1), 9),
         ("ALIGN",       (0, 0), (-1, header_rows - 1), "CENTER"),
-        ("ROWBACKGROUNDS", (0, header_rows), (-1, -1), [WHITE, ROW_ALT]),
+        ("LINEBELOW",   (0, header_rows - 1), (-1, header_rows - 1), 1.5, GOLD),
+        # Body
+        ("ROWBACKGROUNDS", (0, header_rows), (-1, -1), [WHITE, BLUEGRAY]),
         ("TEXTCOLOR",   (0, header_rows), (-1, -1), colors.black),
         ("FONTNAME",    (0, header_rows), (-1, -1), "Helvetica"),
-        ("FONTSIZE",    (0, header_rows), (-1, -1), 8),
+        ("FONTSIZE",    (0, header_rows), (-1, -1), 8.5),
         ("VALIGN",      (0, 0), (-1, -1), "MIDDLE"),
-        ("TOPPADDING",  (0, 0), (-1, -1), 6),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ("TOPPADDING",    (0, 0), (-1, header_rows - 1), 8),
+        ("BOTTOMPADDING", (0, 0), (-1, header_rows - 1), 8),
+        ("TOPPADDING",    (0, header_rows), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, header_rows), (-1, -1), 5),
         ("LEFTPADDING", (0, 0), (-1, -1), 6),
         ("RIGHTPADDING", (0, 0), (-1, -1), 6),
         ("GRID",        (0, 0), (-1, -1), 0.4, MGRAY),
-        ("LINEBELOW",   (0, header_rows - 1), (-1, header_rows - 1), 1.2, GOLD),
+        # Subtle box-shadow effect (outer box + thicker bottom/right edge)
+        ("BOX",         (0, 0), (-1, -1), 0.75, MGRAY),
+        ("LINEBELOW",   (0, -1), (-1, -1), 1.5, DGRAY),
+        ("LINEAFTER",   (-1, 0), (-1, -1), 1.5, DGRAY),
     ])
+    # First column = navy category-label column
+    if first_col:
+        ts.add("BACKGROUND", (0, header_rows), (0, -1), NAVY)
+        ts.add("TEXTCOLOR",  (0, header_rows), (0, -1), WHITE)
+        ts.add("FONTNAME",   (0, header_rows), (0, -1), "Helvetica-Bold")
+    return ts
 
 
 def P(text, style_name, styles):
@@ -448,18 +571,14 @@ def make_score_bar(score, width=90, height=10):
     """Return a Drawing with a navy filled bar representing score/100."""
     total_h = height + 16
     d = Drawing(width, total_h)
-    # Background track
     d.add(Rect(0, 16, width, height,
                fillColor=LGRAY, strokeColor=None, strokeWidth=0))
-    # Filled portion
     filled_w = max(1, float(score) / 100.0 * width)
     d.add(Rect(0, 16, filled_w, height,
                fillColor=NAVY, strokeColor=None, strokeWidth=0))
-    # Gold end-cap
     if filled_w >= 4:
         d.add(Rect(filled_w - 4, 16, 4, height,
                    fillColor=GOLD, strokeColor=None, strokeWidth=0))
-    # Score label centred below bar
     d.add(String(width / 2, 2, str(int(score)),
                  fontName="Helvetica-Bold", fontSize=8,
                  textAnchor="middle", fillColor=NAVY))
@@ -478,13 +597,14 @@ def _chart_image(charts_dir, filename, max_w=480):
     w = min(max_w, img.drawWidth)
     img.drawWidth = w
     img.drawHeight = w * ratio
+    img.hAlign = "CENTER"
     return img
 
 
 # ── Section builders ──────────────────────────────────────────────────────────
 
 def build_cover(data, styles):
-    """Pure-flowable cover page — zero canvas drawing."""
+    """Cover page — light flowables on the navy background drawn by _cover_page."""
     story = []
     company = data.get("company", "Company Name")
     industry = data.get("industry", "")
@@ -492,89 +612,102 @@ def build_cover(data, styles):
     date_str = datetime.now().strftime("%B %Y")
     aw = PAGE_W - 2 * MARGIN
 
-    # ── Logo placeholder ──────────────────────────────────────────────────────
-    story.append(Spacer(1, 50))
-    logo_tbl = Table(
-        [[Paragraph("COMPANY LOGO", ParagraphStyle(
-            "cov_logo", fontName="Helvetica", fontSize=7,
-            textColor=MGRAY, alignment=TA_RIGHT))]],
-        colWidths=[aw],
-    )
-    logo_tbl.setStyle(TableStyle([
-        ("TOPPADDING",    (0, 0), (-1, -1), 0),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
-        ("LEFTPADDING",   (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING",  (0, 0), (-1, -1), 0),
-    ]))
-    story.append(logo_tbl)
-
-    # ── CONFIDENTIAL badge ────────────────────────────────────────────────────
-    story.append(Spacer(1, 80))
-    conf_tbl = Table(
-        [[Paragraph("CONFIDENTIAL", ParagraphStyle(
-            "cov_conf_p", fontName="Helvetica-Bold", fontSize=8,
-            textColor=NAVY, alignment=TA_CENTER))]],
-        colWidths=[3 * cm],
-        hAlign="CENTER",
-    )
-    conf_tbl.setStyle(TableStyle([
-        ("BOX",           (0, 0), (-1, -1), 1,   NAVY),
-        ("TOPPADDING",    (0, 0), (-1, -1), 5),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-        ("LEFTPADDING",   (0, 0), (-1, -1), 10),
-        ("RIGHTPADDING",  (0, 0), (-1, -1), 10),
-    ]))
-    story.append(conf_tbl)
-
-    # ── Main title ────────────────────────────────────────────────────────────
-    story.append(Spacer(1, 60))
+    story.append(Spacer(1, 3.0 * cm))
     story.append(Paragraph("AI STRATEGY SIMULATOR", ParagraphStyle(
-        "cov_title", fontName="Helvetica-Bold", fontSize=28,
-        textColor=NAVY, alignment=TA_CENTER, spaceAfter=0,
-    )))
-    story.append(Spacer(1, 14))
+        "cov_title", fontName="Helvetica-Bold", fontSize=32,
+        textColor=WHITE, alignment=TA_CENTER, leading=36)))
+    story.append(Spacer(1, 0.45 * cm))
     story.append(Paragraph("STRATEGIC INTELLIGENCE REPORT", ParagraphStyle(
         "cov_subtitle", fontName="Helvetica", fontSize=14,
-        textColor=DGRAY, alignment=TA_CENTER, spaceBefore=0,
-    )))
+        textColor=GOLD, alignment=TA_CENTER, leading=18)))
 
-    # ── Company & industry ────────────────────────────────────────────────────
-    story.append(Spacer(1, 50))
-    story.append(Paragraph(company.upper(), ParagraphStyle(
-        "cov_co", fontName="Helvetica-Bold", fontSize=22,
-        textColor=GOLD, alignment=TA_CENTER,
-    )))
-    story.append(Spacer(1, 20))
+    story.append(Spacer(1, 0.7 * cm))
+    story.append(HRFlowable(width="55%", thickness=3, color=GOLD,
+                            spaceBefore=4, spaceAfter=4, hAlign="CENTER"))
+
+    story.append(Spacer(1, 1.6 * cm))
+    story.append(Paragraph(company.upper(), styles["cover_company"]))
+    story.append(Spacer(1, 0.3 * cm))
     story.append(Paragraph(industry, ParagraphStyle(
-        "cov_ind", fontName="Helvetica", fontSize=12,
-        textColor=DGRAY, alignment=TA_CENTER,
-    )))
+        "cov_ind", fontName="Helvetica-Oblique", fontSize=13,
+        textColor=GOLD, alignment=TA_CENTER, leading=16)))
 
-    # ── Strategic question ────────────────────────────────────────────────────
-    story.append(Spacer(1, 30))
-    q_indent = max(0, (aw - 400) / 2)
-    story.append(Paragraph(f'"{question}"', ParagraphStyle(
-        "cov_q", fontName="Helvetica-Oblique", fontSize=11,
-        textColor=colors.HexColor("#333333"), alignment=TA_CENTER, leading=16,
-        leftIndent=q_indent, rightIndent=q_indent,
-    )))
+    story.append(Spacer(1, 1.1 * cm))
+    q_tbl = Table(
+        [[Paragraph(f'"{question}"', ParagraphStyle(
+            "cov_q", fontName="Helvetica-Oblique", fontSize=12,
+            textColor=WHITE, alignment=TA_CENTER, leading=17))]],
+        colWidths=[aw * 0.72], hAlign="CENTER",
+    )
+    q_tbl.setStyle(TableStyle([
+        ("LINEBEFORE",    (0, 0), (0, -1), 3, GOLD),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 16),
+        ("RIGHTPADDING",  (0, 0), (-1, -1), 10),
+        ("TOPPADDING",    (0, 0), (-1, -1), 8),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+    ]))
+    story.append(q_tbl)
 
-    # ── Date ──────────────────────────────────────────────────────────────────
-    story.append(Spacer(1, 50))
+    story.append(Spacer(1, 1.4 * cm))
     story.append(Paragraph(date_str, ParagraphStyle(
-        "cov_dt", fontName="Helvetica", fontSize=11,
-        textColor=DGRAY, alignment=TA_CENTER,
-    )))
-
-    # ── Footer ────────────────────────────────────────────────────────────────
-    story.append(Spacer(1, 100))
-    story.append(Paragraph("CONFIDENTIAL", ParagraphStyle(
-        "cov_footer", fontName="Helvetica", fontSize=8,
-        textColor=MGRAY, alignment=TA_CENTER,
-    )))
+        "cov_dt", fontName="Helvetica", fontSize=10,
+        textColor=MGRAY, alignment=TA_CENTER)))
 
     # Switch template BEFORE PageBreak so page 2 gets the Normal header.
     story.append(NextPageTemplate("Normal"))
+    story.append(PageBreak())
+    return story
+
+
+def build_toc(data, styles):
+    """Table of contents with dot leaders and a highlighted Financial row."""
+    aw = PAGE_W - 2 * MARGIN
+    story = [SectionHeader("Table of Contents"), Spacer(1, 0.5 * cm)]
+
+    entries = [
+        ("Executive Summary",         "Overall strategic fit & key tensions"),
+        ("External Environment",      "PESTEL · Porter's Five Forces · lifecycle"),
+        ("Internal Audit",            "VRIO resources & McKinsey 7S"),
+        ("Strategic Position",        "SWOT · TOWS · Ansoff growth matrix"),
+        ("Competitive Dynamics",      "Game theory & Blue Ocean ERRC"),
+        ("Strategy Formulation",      "Generic strategy & Strategy Clock"),
+        ("Risk & Scenarios",          "STEEP scenarios & top strategic risks"),
+        ("Execution Roadmap",         "Balanced Scorecard & OKRs"),
+        ("Financial Viability",       "DCF · unit economics · valuation · go signal"),
+        ("Strategic Options Ranking", "Weighted scoring of strategic options"),
+        ("Board Narrative",           "Recommendation & scenario branches"),
+        ("Appendix",                  "Aggregate scores summary"),
+    ]
+
+    rows = []
+    hl_idx = None
+    for i, (name, desc) in enumerate(entries):
+        if name == "Financial Viability":
+            hl_idx = i
+            rows.append([Paragraph(name, styles["toc_name_hl"]),
+                         Paragraph(desc, styles["toc_desc_hl"])])
+        else:
+            rows.append([Paragraph(name, styles["toc_name"]),
+                         Paragraph(desc, styles["toc_desc"])])
+
+    t = Table(rows, colWidths=[aw * 0.42, aw * 0.58])
+    style_cmds = [
+        ("ROWBACKGROUNDS", (0, 0), (-1, -1), [WHITE, LGRAY]),
+        ("VALIGN",       (0, 0), (-1, -1), "MIDDLE"),
+        ("TOPPADDING",   (0, 0), (-1, -1), 7),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+        ("LEFTPADDING",  (0, 0), (-1, -1), 10),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+        ("BOX",          (0, 0), (-1, -1), 0.75, MGRAY),
+    ]
+    # Gold dotted leaders under every row
+    for i in range(len(rows)):
+        style_cmds.append(("LINEBELOW", (0, i), (-1, i), 0.5, GOLD, None, (1, 2)))
+    # Highlight Financial Viability row
+    if hl_idx is not None:
+        style_cmds.append(("BACKGROUND", (0, hl_idx), (-1, hl_idx), NAVY))
+    t.setStyle(TableStyle(style_cmds))
+    story.append(t)
     story.append(PageBreak())
     return story
 
@@ -583,35 +716,55 @@ def build_executive_summary(data, styles, charts_dir=None):
     syn = data.get("synthesis", {})
     summary = syn.get("executive_summary", "")
     score = syn.get("overall_strategic_fit_score", 0)
-
-    story = [SectionHeader("Executive Summary"), Spacer(1, 0.3 * cm)]
-
-    # Score badge + optional radar chart (left) + summary text (right)
-    badge = ScoreBadge(score, "Overall Strategic Fit", size=100)
-    summary_para = Paragraph(summary, styles["narrative"])
-    radar_img = _chart_image(charts_dir, "agent_scores_radar.png", max_w=180)
-
-    left_content = [badge]
-    if radar_img:
-        left_content += [Spacer(1, 8), radar_img]
-    left_col_w = 185 if radar_img else (3.5 * cm)
     aw = PAGE_W - 2 * MARGIN
 
-    layout = Table(
-        [[left_content, summary_para]],
-        colWidths=[left_col_w, aw - left_col_w - 0.5 * cm],
-        hAlign="LEFT"
+    story = [SectionHeader("Executive Summary", score=score), Spacer(1, 0.3 * cm)]
+
+    # Large badge (left) + radar chart (right)
+    badge = ScoreBadge(score, "Overall Strategic Fit", size=120)
+    radar_img = _chart_image(charts_dir, "agent_scores_radar.png", max_w=250)
+    top = Table(
+        [[badge, radar_img or Spacer(1, 1)]],
+        colWidths=[150, aw - 150],
     )
-    layout.setStyle(TableStyle([
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+    top.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("ALIGN", (0, 0), (0, 0), "CENTER"),
         ("LEFTPADDING", (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
         ("TOPPADDING", (0, 0), (-1, -1), 0),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
     ]))
-    story.append(layout)
+    story.append(top)
 
-    # Conflicts & resolutions
+    # Summary text in two columns
+    story.append(Spacer(1, 0.35 * cm))
+    story.append(Paragraph("Executive Overview", styles["subsection"]))
+    sents = [s.strip() for s in summary.replace("\n", " ").split(". ") if s.strip()]
+    mid = (len(sents) + 1) // 2
+    left_txt = ". ".join(sents[:mid])
+    right_txt = ". ".join(sents[mid:])
+    if left_txt and not left_txt.endswith("."):
+        left_txt += "."
+    if right_txt and not right_txt.endswith("."):
+        right_txt += "."
+    two_col = Table(
+        [[Paragraph(left_txt, styles["narrative"]),
+          Paragraph(right_txt, styles["narrative"])]],
+        colWidths=[aw / 2 - 6, aw / 2 - 6],
+    )
+    two_col.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (0, 0), 0),
+        ("RIGHTPADDING", (0, 0), (0, 0), 12),
+        ("LEFTPADDING", (1, 0), (1, 0), 12),
+        ("RIGHTPADDING", (1, 0), (1, 0), 0),
+        ("TOPPADDING", (0, 0), (-1, -1), 0),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+    ]))
+    story.append(two_col)
+
+    # Conflicts & resolutions (colour-coded columns)
     story.append(Spacer(1, 0.4 * cm))
     story.append(Paragraph("Key Strategic Tensions & Resolutions", styles["subsection"]))
     conflicts = syn.get("inter_agent_conflicts", [])
@@ -621,7 +774,10 @@ def build_executive_summary(data, styles, charts_dir=None):
         rows.append([Paragraph(c, styles["table_cell"]),
                      Paragraph(r, styles["table_cell"])])
     t = Table(rows, colWidths=[aw * 0.45, aw * 0.55])
-    t.setStyle(std_table_style())
+    ts = std_table_style(first_col=False)
+    ts.add("BACKGROUND", (0, 1), (0, -1), colors.HexColor("#FBEAEA"))
+    ts.add("BACKGROUND", (1, 1), (1, -1), colors.HexColor("#EAF3EC"))
+    t.setStyle(ts)
     story.append(t)
     story.append(PageBreak())
     return story
@@ -629,18 +785,18 @@ def build_executive_summary(data, styles, charts_dir=None):
 
 def build_external(data, styles, charts_dir=None):
     ext = data.get("external", {})
-    story = [SectionHeader("External Environment Analysis"), Spacer(1, 0.3 * cm)]
+    story = [SectionHeader("External Environment Analysis",
+                           score=ext.get("overall_attractiveness_score")),
+             Spacer(1, 0.3 * cm)]
 
     # PESTEL table
     story.append(Paragraph("PESTEL Analysis", styles["subsection"]))
     pestel = ext.get("pestel", [])
-    impact_colors = {"high": colors.HexColor("#B22222"),
-                     "medium": colors.HexColor("#B8860B"),
-                     "low": colors.HexColor("#1A7A4A")}
+    impact_colors = {"high": RED, "medium": AMBER, "low": GREEN}
     rows = [["Factor", "Description", "Impact", "Direction"]]
     for p in pestel:
         rows.append([
-            Paragraph(f"<b>{p['factor']}</b>", styles["table_cell"]),
+            Paragraph(p["factor"], styles["cell_label"]),
             Paragraph(p["description"], styles["table_cell"]),
             Paragraph(p["impact"].upper(), styles["table_cell_c"]),
             Paragraph(p["direction"].upper(), styles["table_cell_c"]),
@@ -648,12 +804,11 @@ def build_external(data, styles, charts_dir=None):
     aw = PAGE_W - 2 * MARGIN
     t = Table(rows, colWidths=[2.8*cm, aw-2.8*cm-2.2*cm-3*cm, 2.2*cm, 3*cm])
     ts = std_table_style()
-    # Colour-code impact cells
     for i, p in enumerate(pestel, start=1):
         col = impact_colors.get(p["impact"], DGRAY)
         ts.add("TEXTCOLOR", (2, i), (2, i), col)
         ts.add("FONTNAME",  (2, i), (2, i), "Helvetica-Bold")
-        dir_col = colors.HexColor("#1A7A4A") if p["direction"] == "opportunity" else colors.HexColor("#B22222")
+        dir_col = GREEN if p["direction"] == "opportunity" else RED
         ts.add("TEXTCOLOR", (3, i), (3, i), dir_col)
         ts.add("FONTNAME",  (3, i), (3, i), "Helvetica-Bold")
     t.setStyle(ts)
@@ -666,7 +821,7 @@ def build_external(data, styles, charts_dir=None):
     rows2 = [["Force", "Intensity", "Score", "Rationale"]]
     for f in forces:
         rows2.append([
-            Paragraph(f["force"], styles["table_cell"]),
+            Paragraph(f["force"], styles["cell_label"]),
             Paragraph(f["intensity"].upper(), styles["table_cell_c"]),
             Paragraph(str(f["score"]), styles["table_cell_c"]),
             Paragraph(f["rationale"], styles["table_cell"]),
@@ -698,7 +853,9 @@ def build_external(data, styles, charts_dir=None):
 
 def build_internal(data, styles):
     internal = data.get("internal", {})
-    story = [SectionHeader("Internal Audit"), Spacer(1, 0.3 * cm)]
+    story = [SectionHeader("Internal Audit",
+                           score=internal.get("internal_strength_score")),
+             Spacer(1, 0.3 * cm)]
 
     # VRIO table
     story.append(Paragraph("VRIO Resource Analysis", styles["subsection"]))
@@ -708,9 +865,8 @@ def build_internal(data, styles):
     rows = [["Resource", "Valuable", "Rare", "Inimitable", "Organized", "Implication"]]
     for r in internal.get("vrio_resources", []):
         ci = r.get("competitive_implication", "CP")
-        impl_color = vrio_color_map.get(ci, DGRAY)
         rows.append([
-            Paragraph(r["resource"], styles["table_cell"]),
+            Paragraph(r["resource"], styles["cell_label"]),
             Paragraph("✓" if r["valuable"] else "✗", styles["table_cell_c"]),
             Paragraph("✓" if r["rare"] else "✗", styles["table_cell_c"]),
             Paragraph("✓" if r["inimitable"] else "✗", styles["table_cell_c"]),
@@ -727,11 +883,9 @@ def build_internal(data, styles):
         ts.add("BACKGROUND", (5, i), (5, i), col)
         ts.add("TEXTCOLOR",  (5, i), (5, i), WHITE)
         ts.add("FONTNAME",   (5, i), (5, i), "Helvetica-Bold")
-        # Checkmark colours
         for j in range(1, 5):
             val = [r["valuable"], r["rare"], r["inimitable"], r["organized"]][j-1]
-            ts.add("TEXTCOLOR", (j, i), (j, i),
-                   colors.HexColor("#1A7A4A") if val else colors.HexColor("#B22222"))
+            ts.add("TEXTCOLOR", (j, i), (j, i), GREEN if val else RED)
     t.setStyle(ts)
     story.append(t)
 
@@ -761,7 +915,7 @@ def build_internal(data, styles):
         score = el.get("alignment_score", 0)
         bar = "█" * int(score / 10) + "░" * (10 - int(score / 10))
         rows7.append([
-            Paragraph(f"<b>{el['element']}</b>", styles["table_cell"]),
+            Paragraph(el['element'], styles["cell_label"]),
             Paragraph(el["assessment"], styles["table_cell"]),
             Paragraph(f"{bar}  {score:.0f}", ParagraphStyle(
                 "mono", fontName="Courier", fontSize=7.5,
@@ -780,7 +934,9 @@ def build_internal(data, styles):
 
 def build_position(data, styles):
     pos = data.get("position", {})
-    story = [SectionHeader("Strategic Position"), Spacer(1, 0.3 * cm)]
+    story = [SectionHeader("Strategic Position",
+                           score=pos.get("strategic_position_score")),
+             Spacer(1, 0.3 * cm)]
 
     # SWOT 2×2
     story.append(Paragraph("SWOT Analysis", styles["subsection"]))
@@ -836,12 +992,11 @@ def build_position(data, styles):
     story.append(Spacer(1, 0.5 * cm))
     story.append(Paragraph("TOWS Strategic Directions", styles["subsection"]))
     tows = pos.get("tows_strategies", [])
-    type_colors = {"SO": colors.HexColor("#1A7A4A"), "ST": colors.HexColor("#1B2A4A"),
-                   "WO": colors.HexColor("#B8860B"), "WT": colors.HexColor("#B22222")}
+    type_colors = {"SO": GREEN, "ST": NAVY, "WO": AMBER, "WT": RED}
     rows_t = [["Type", "Strategy", "Rationale"]]
     for t in tows:
         rows_t.append([
-            Paragraph(f"<b>{t['type']}</b>", styles["table_cell_c"]),
+            Paragraph(t['type'], styles["cell_label_c"]),
             Paragraph(t["strategy"], styles["table_cell"]),
             Paragraph(t["rationale"], styles["table_cell"]),
         ])
@@ -865,7 +1020,9 @@ def build_position(data, styles):
 
 def build_competitive(data, styles):
     comp = data.get("competitive", {})
-    story = [SectionHeader("Competitive Dynamics"), Spacer(1, 0.3 * cm)]
+    story = [SectionHeader("Competitive Dynamics",
+                           score=comp.get("competitive_intensity_score")),
+             Spacer(1, 0.3 * cm)]
 
     # Game Theory
     story.append(Paragraph("Game Theory Scenarios", styles["subsection"]))
@@ -874,7 +1031,7 @@ def build_competitive(data, styles):
              "Payoff Us", "Payoff Comp.", "Nash Eq.", "Recommended"]]
     for s in gt:
         rows.append([
-            Paragraph(s.get("scenario", ""), styles["table_cell"]),
+            Paragraph(s.get("scenario", ""), styles["cell_label"]),
             Paragraph(s.get("our_move", ""), styles["table_cell"]),
             Paragraph(s.get("competitor_response", ""), styles["table_cell"]),
             Paragraph(str(s.get("payoff_us", "")), styles["table_cell_c"]),
@@ -890,7 +1047,7 @@ def build_competitive(data, styles):
             ts.add("BACKGROUND", (0, i), (-1, i), colors.HexColor("#E8F4EC"))
         if s.get("nash_equilibrium"):
             ts.add("FONTNAME", (5, i), (5, i), "Helvetica-Bold")
-            ts.add("TEXTCOLOR", (5, i), (5, i), colors.HexColor("#1A7A4A"))
+            ts.add("TEXTCOLOR", (5, i), (5, i), GREEN)
     t.setStyle(ts)
     story.append(t)
 
@@ -898,14 +1055,11 @@ def build_competitive(data, styles):
     story.append(Spacer(1, 0.5 * cm))
     story.append(Paragraph("Blue Ocean ERRC Grid", styles["subsection"]))
     errc = comp.get("errc_grid", [])
-    action_colors = {"eliminate": colors.HexColor("#B22222"),
-                     "reduce":    colors.HexColor("#C15B1E"),
-                     "raise":     colors.HexColor("#1A7A4A"),
-                     "create":    colors.HexColor("#1B2A4A")}
+    action_colors = {"eliminate": RED, "reduce": CP_COLOR, "raise": GREEN, "create": NAVY}
     rows2 = [["Factor", "Action", "Rationale", "Impact"]]
     for e in errc:
         rows2.append([
-            Paragraph(e.get("factor", ""), styles["table_cell"]),
+            Paragraph(e.get("factor", ""), styles["cell_label"]),
             Paragraph(e.get("action", "").upper(), styles["table_cell_c"]),
             Paragraph(e.get("rationale", ""), styles["table_cell"]),
             Paragraph(str(e.get("impact", "")), styles["table_cell_c"]),
@@ -932,7 +1086,9 @@ def build_competitive(data, styles):
 
 def build_formulation(data, styles):
     form = data.get("formulation", {})
-    story = [SectionHeader("Strategy Formulation"), Spacer(1, 0.3 * cm)]
+    story = [SectionHeader("Strategy Formulation",
+                           score=form.get("formulation_confidence_score")),
+             Spacer(1, 0.3 * cm)]
 
     # Generic strategy
     story.append(Paragraph("Generic Strategy Recommendation", styles["subsection"]))
@@ -942,7 +1098,7 @@ def build_formulation(data, styles):
     conf = form.get("formulation_confidence_score", 0)
 
     aw = PAGE_W - 2 * MARGIN
-    badge = ScoreBadge(conf, "Confidence", size=80)
+    badge = ScoreBadge(conf, "Confidence", size=90)
     detail = [
         Paragraph(f"<b>Recommended Strategy:</b> {rec}", styles["body_bold"]),
         Spacer(1, 4),
@@ -952,7 +1108,7 @@ def build_formulation(data, styles):
                   f"<b>Risks:</b> {', '.join(generic.get('risks', []))}", styles["small"]),
     ]
     lt = Table([[badge, detail]],
-               colWidths=[2.8*cm, aw - 2.8*cm])
+               colWidths=[3.0*cm, aw - 3.0*cm])
     lt.setStyle(TableStyle([
         ("VALIGN", (0,0), (-1,-1), "TOP"),
         ("LEFTPADDING", (0,0), (-1,-1), 0),
@@ -991,7 +1147,8 @@ def build_formulation(data, styles):
 
 def build_risk(data, styles):
     risk = data.get("risk", {})
-    story = [SectionHeader("Risk & Scenarios"), Spacer(1, 0.3 * cm)]
+    story = [SectionHeader("Risk & Scenarios", score=risk.get("risk_score")),
+             Spacer(1, 0.3 * cm)]
 
     # STEEP scenarios
     story.append(Paragraph("STEEP Scenario Analysis", styles["subsection"]))
@@ -1014,12 +1171,11 @@ def build_risk(data, styles):
         for n in scenario_names
     ]]
     for dim in dimensions:
-        row = [Paragraph(dim.capitalize(), styles["table_cell"])]
+        row = [Paragraph(dim.capitalize(), styles["cell_label"])]
         for s in steep:
             row.append(Paragraph(s.get(dim, ""), styles["table_cell"]))
         rows.append(row)
     aw = PAGE_W - 2 * MARGIN
-    ncols = len(steep) + 1
     cw = [2.5*cm] + [(aw - 2.5*cm) / len(steep)] * len(steep)
     t = Table(rows, colWidths=cw)
     ts = std_table_style()
@@ -1039,7 +1195,7 @@ def build_risk(data, styles):
     mitigations = risk.get("mitigation_priorities", [])
     for i, (r, m) in enumerate(zip(top_risks, mitigations + [""]*10), start=1):
         rows2.append([
-            Paragraph(str(i), styles["table_cell_c"]),
+            Paragraph(str(i), styles["cell_label_c"]),
             Paragraph(r, styles["table_cell"]),
             Paragraph(m, styles["table_cell"]),
         ])
@@ -1057,22 +1213,24 @@ def build_risk(data, styles):
 
 def build_execution(data, styles):
     exec_data = data.get("execution", {})
-    story = [SectionHeader("Execution Roadmap"), Spacer(1, 0.3 * cm)]
+    story = [SectionHeader("Execution Roadmap",
+                           score=exec_data.get("execution_readiness_score")),
+             Spacer(1, 0.3 * cm)]
 
     # Balanced Scorecard
     story.append(Paragraph("Balanced Scorecard", styles["subsection"]))
     bsc = exec_data.get("balanced_scorecard", [])
     persp_colors = {
-        "financial": colors.HexColor("#1B2A4A"),
-        "customer":  colors.HexColor("#1A7A4A"),
-        "internal":  colors.HexColor("#C15B1E"),
-        "learning":  colors.HexColor("#B8860B"),
+        "financial": NAVY,
+        "customer":  GREEN,
+        "internal":  CP_COLOR,
+        "learning":  AMBER,
     }
     rows = [["Perspective", "Objective", "KPI", "Target", "Initiative"]]
     for b in bsc:
         p = b.get("perspective", "")
         rows.append([
-            Paragraph(p.upper(), styles["table_cell_c"]),
+            Paragraph(p.upper(), styles["cell_label_c"]),
             Paragraph(b.get("objective",""), styles["table_cell"]),
             Paragraph(b.get("kpi",""), styles["table_cell"]),
             Paragraph(b.get("target",""), styles["table_cell"]),
@@ -1085,7 +1243,6 @@ def build_execution(data, styles):
         col = persp_colors.get(b.get("perspective",""), NAVY)
         ts.add("BACKGROUND", (0, i), (0, i), col)
         ts.add("TEXTCOLOR",  (0, i), (0, i), WHITE)
-        ts.add("FONTNAME",   (0, i), (0, i), "Helvetica-Bold")
     t.setStyle(ts)
     story.append(t)
 
@@ -1097,7 +1254,7 @@ def build_execution(data, styles):
     for o in okrs:
         kr_text = "\n".join([f"• {kr}" for kr in o.get("key_results", [])])
         rows2.append([
-            Paragraph(o.get("objective",""), styles["table_cell"]),
+            Paragraph(o.get("objective",""), styles["cell_label"]),
             Paragraph(kr_text.replace("\n","<br/>"), styles["table_cell"]),
             Paragraph(o.get("timeframe",""), styles["table_cell_c"]),
             Paragraph(o.get("owner",""), styles["table_cell"]),
@@ -1115,6 +1272,247 @@ def build_execution(data, styles):
     return story
 
 
+def build_financial_viability(data, styles, charts_dir=None):
+    fin = data.get("finance")
+    if not fin:
+        return []
+
+    aw    = PAGE_W - 2 * MARGIN
+    story = [SectionHeader("Financial Viability Analysis",
+                           score=fin.get("financial_fit_score")),
+             Spacer(1, 0.3 * cm)]
+
+    def fmt_m(v):
+        try:
+            v = float(v)
+        except (TypeError, ValueError):
+            return str(v)
+        if abs(v) >= 1e9:
+            return f"${v / 1e9:.2f}B"
+        if abs(v) >= 1e6:
+            return f"${v / 1e6:.1f}M"
+        return f"${v:,.0f}"
+
+    def kpi_strip(headers, values, value_colors=None, arrows=None):
+        """Navy-header / tinted-value metrics strip, full page width."""
+        n = len(headers)
+        value_colors = value_colors or [NAVY] * n
+        arrows = arrows or [None] * n
+        hdr_cells = [Paragraph(h, styles["kpi_head"]) for h in headers]
+        val_cells = []
+        for i, v in enumerate(values):
+            prefix = ""
+            if arrows[i] == "up":
+                prefix = f'<font face="{ARROW_FONT}" color="#1A7A4A">{UP_ARROW}</font> '
+            elif arrows[i] == "down":
+                prefix = f'<font face="{ARROW_FONT}" color="#B22222">{DOWN_ARROW}</font> '
+            val_cells.append(Paragraph(f"{prefix}{v}", _kpi_val_style(value_colors[i])))
+        ts = TableStyle([
+            ("BACKGROUND",    (0, 0), (-1, 0), NAVY),
+            ("LINEBELOW",     (0, 0), (-1, 0), 1.5, GOLD),
+            ("BACKGROUND",    (0, 1), (-1, 1), BLUEGRAY),
+            ("ALIGN",         (0, 0), (-1, -1), "CENTER"),
+            ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
+            ("TOPPADDING",    (0, 0), (-1, -1), 9),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 9),
+            ("GRID",          (0, 0), (-1, -1), 0.4, MGRAY),
+            ("BOX",           (0, 0), (-1, -1), 0.75, MGRAY),
+            ("LINEBELOW",     (0, -1), (-1, -1), 1.5, DGRAY),
+            ("LINEAFTER",     (-1, 0), (-1, -1), 1.5, DGRAY),
+        ])
+        tbl = Table([hdr_cells, val_cells], colWidths=[aw / n] * n)
+        tbl.setStyle(ts)
+        return tbl
+
+    # ── Row 1: DCF metrics ────────────────────────────────────────────────────
+    dcf = fin.get("dcf", {})
+    npv = dcf.get("npv", 0)
+    irr = float(dcf.get("irr", 0) or 0)
+    wacc = float(dcf.get("wacc", 0) or 0)
+    story.append(KeepTogether([
+        Paragraph("Discounted Cash Flow", styles["subsection"]),
+        kpi_strip(
+            ["NPV", "IRR", "Payback Period", "WACC", "Enterprise Value"],
+            [
+                fmt_m(npv),
+                f"{irr:.1f}%",
+                f"{dcf.get('payback_period_years', 0):.1f} yrs",
+                f"{wacc:.1f}%",
+                fmt_m(dcf.get("enterprise_value", 0)),
+            ],
+            value_colors=[
+                GREEN if float(npv or 0) >= 0 else RED,
+                GREEN if irr >= wacc else RED,
+                NAVY, NAVY, NAVY,
+            ],
+            arrows=[
+                "up" if float(npv or 0) >= 0 else "down",
+                "up" if irr >= wacc else "down",
+                None, None, None,
+            ],
+        ),
+    ]))
+    story.append(Spacer(1, 0.35 * cm))
+    fcf_img = _chart_image(charts_dir, "fcf_cumulative.png")
+    if fcf_img:
+        story.append(fcf_img)
+        story.append(Spacer(1, 0.2 * cm))
+
+    # ── Row 2: Unit Economics ─────────────────────────────────────────────────
+    burn    = fin.get("burn", {})
+    ue      = burn.get("unit_economics", {})
+    ltv_cac = float(ue.get("ltv_cac_ratio", 0) or 0)
+    runway  = burn.get("runway_months", 0)
+    ltv_cac_color = GREEN if ltv_cac >= 3.0 else AMBER if ltv_cac >= 1.5 else RED
+    runway_color  = GREEN if float(runway or 0) >= 18 else AMBER if float(runway or 0) >= 9 else RED
+    story.append(KeepTogether([
+        Paragraph("Unit Economics", styles["subsection"]),
+        kpi_strip(
+            ["LTV", "CAC", "LTV / CAC Ratio", "Gross Margin %", "Runway (months)"],
+            [
+                fmt_m(ue.get("ltv", 0)),
+                f"${ue.get('cac', 0):,.0f}",
+                f"{ltv_cac:.1f}x",
+                f"{ue.get('gross_margin_pct', 0):.1f}%",
+                f"{runway:.0f}",
+            ],
+            value_colors=[NAVY, RED, ltv_cac_color, GREEN, runway_color],
+            arrows=[None, None, "up" if ltv_cac >= 3.0 else "down", None,
+                    "up" if float(runway or 0) >= 18 else "down"],
+        ),
+    ]))
+    story.append(Spacer(1, 0.35 * cm))
+
+    # ── Row 3: Cap Table & Funding Round ──────────────────────────────────────
+    cap = fin.get("cap_table", {})
+    rnd = cap.get("funding_round", {})
+    story.append(KeepTogether([
+        Paragraph("Cap Table & Funding Round", styles["subsection"]),
+        kpi_strip(
+            ["Funding Round", "Amount Raised", "Pre-Money Val.", "Post-Money Val.", "Founder Dilution"],
+            [
+                rnd.get("round_name", "—"),
+                fmt_m(rnd.get("amount_raised", 0)),
+                fmt_m(rnd.get("pre_money_valuation", 0)),
+                fmt_m(rnd.get("post_money_valuation", 0)),
+                f"{cap.get('founder_dilution_pct', 0):.1f}%",
+            ],
+            value_colors=[NAVY, GREEN, NAVY, NAVY, RED],
+            arrows=[None, None, None, None, "down"],
+        ),
+    ]))
+    story.append(Spacer(1, 0.35 * cm))
+
+    # ── Valuation Range — three large number boxes ────────────────────────────
+    val        = fin.get("valuation", {})
+    val_low    = val.get("implied_valuation_low", 0)
+    val_mid    = val.get("implied_valuation_mid", 0)
+    val_high   = val.get("implied_valuation_high", 0)
+    method     = val.get("valuation_method_used", "")
+    commentary = val.get("valuation_commentary", "")
+
+    val_tbl = Table(
+        [["BEAR CASE", "BASE CASE", "BULL CASE"],
+         [fmt_m(val_low), fmt_m(val_mid), fmt_m(val_high)]],
+        colWidths=[aw / 3] * 3,
+    )
+    val_tbl.setStyle(TableStyle([
+        # Label row — coloured bars
+        ("BACKGROUND",    (0, 0), (0, 0), RED),
+        ("BACKGROUND",    (1, 0), (1, 0), NAVY),
+        ("BACKGROUND",    (2, 0), (2, 0), GREEN),
+        ("TEXTCOLOR",     (0, 0), (-1, 0), WHITE),
+        ("FONTNAME",      (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE",      (0, 0), (-1, 0), 10),
+        # Number row — large colour-coded values
+        ("FONTNAME",      (0, 1), (-1, 1), "Helvetica-Bold"),
+        ("FONTSIZE",      (0, 1), (-1, 1), 20),
+        ("TEXTCOLOR",     (0, 1), (0, 1), RED),
+        ("TEXTCOLOR",     (1, 1), (1, 1), NAVY),
+        ("TEXTCOLOR",     (2, 1), (2, 1), GREEN),
+        ("BACKGROUND",    (0, 1), (-1, 1), WHITE),
+        ("ALIGN",         (0, 0), (-1, -1), "CENTER"),
+        ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
+        ("TOPPADDING",    (0, 0), (-1, 0), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, 0), 6),
+        ("TOPPADDING",    (0, 1), (-1, 1), 16),
+        ("BOTTOMPADDING", (0, 1), (-1, 1), 16),
+        ("GRID",          (0, 0), (-1, -1), 0.4, MGRAY),
+        ("BOX",           (0, 0), (-1, -1), 0.75, MGRAY),
+        ("INNERGRID",     (0, 1), (-1, 1), 2, WHITE),
+        ("LINEBELOW",     (0, -1), (-1, -1), 1.5, DGRAY),
+        ("LINEAFTER",     (-1, 0), (-1, -1), 1.5, DGRAY),
+    ]))
+    story.append(KeepTogether([
+        Paragraph("Valuation Range", styles["subsection"]),
+        val_tbl,
+        Spacer(1, 0.15 * cm),
+        Paragraph(f"<b>Method:</b> {method} — {commentary}", styles["small"]),
+    ]))
+    story.append(Spacer(1, 0.35 * cm))
+    val_img = _chart_image(charts_dir, "valuation_comps.png")
+    if val_img:
+        story.append(val_img)
+        story.append(Spacer(1, 0.2 * cm))
+
+    # ── Go Signal banner + Financial Fit Score badge ──────────────────────────
+    score  = fin.get("financial_fit_score", 0)
+    go     = fin.get("go_signal", "")
+    go_col = {
+        "Go":             GREEN,
+        "Conditional Go": AMBER,
+        "No Go":          RED,
+    }.get(go, NAVY)
+
+    score_badge = ScoreBadge(score, "Financial Fit", size=120)
+
+    go_banner = Table(
+        [[Paragraph(go.upper(), ParagraphStyle(
+            "fv_go", fontName="Helvetica-Bold", fontSize=20,
+            textColor=WHITE, alignment=TA_CENTER, leading=24))]],
+        colWidths=[aw - 150],
+    )
+    go_banner.setStyle(TableStyle([
+        ("BACKGROUND",    (0, 0), (-1, -1), go_col),
+        ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
+        ("ALIGN",         (0, 0), (-1, -1), "CENTER"),
+        ("TOPPADDING",    (0, 0), (-1, -1), 22),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 22),
+        ("BOX",           (0, 0), (-1, -1), 1, GOLD),
+    ]))
+
+    signal_layout = Table(
+        [[score_badge, go_banner]],
+        colWidths=[150, aw - 150],
+    )
+    signal_layout.setStyle(TableStyle([
+        ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
+        ("ALIGN",         (0, 0), (0, 0), "CENTER"),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING",  (0, 0), (-1, -1), 0),
+        ("TOPPADDING",    (0, 0), (-1, -1), 0),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+    ]))
+    story.append(KeepTogether([
+        Paragraph("Go Signal & Financial Fit Score", styles["subsection"]),
+        signal_layout,
+    ]))
+    story.append(Spacer(1, 0.35 * cm))
+
+    # ── CFO Summary ───────────────────────────────────────────────────────────
+    cfo = fin.get("cfo_summary", "")
+    story.append(KeepTogether([
+        Paragraph("CFO Summary", styles["subsection"]),
+        Paragraph(f"<i>{cfo}</i>", styles["narrative"]),
+    ]))
+    wf_img = _chart_image(charts_dir, "dcf_waterfall.png")
+    if wf_img:
+        story.append(Spacer(1, 0.2 * cm))
+        story.append(wf_img)
+    story.append(PageBreak())
+    return story
+
+
 def build_options_ranking(data, styles, charts_dir=None):
     syn = data.get("synthesis", {})
     story = [SectionHeader("Strategic Options Ranking"), Spacer(1, 0.3 * cm)]
@@ -1127,7 +1525,7 @@ def build_options_ranking(data, styles, charts_dir=None):
         score = opt.get("overall_score", 0)
         frameworks = ", ".join(opt.get("supporting_frameworks", []))
         rows.append([
-            Paragraph(f"#{i}", styles["table_cell_c"]),
+            Paragraph(f"#{i}", styles["cell_label_c"]),
             Paragraph(f"<b>{opt.get('option','')}</b>", styles["table_cell"]),
             Paragraph(str(opt.get("strategic_fit_score","")), styles["table_cell_c"]),
             Paragraph(str(opt.get("risk_score","")), styles["table_cell_c"]),
@@ -1139,8 +1537,8 @@ def build_options_ranking(data, styles, charts_dir=None):
     ts = std_table_style()
     for i, opt in enumerate(sorted(options, key=lambda x: -x.get("overall_score", 0)), start=1):
         if i == 1:
-            ts.add("BACKGROUND", (0, i), (-1, i), colors.HexColor("#E8F4EC"))
-            ts.add("FONTNAME",   (0, i), (-1, i), "Helvetica-Bold")
+            ts.add("BACKGROUND", (1, i), (-1, i), colors.HexColor("#E8F4EC"))
+            ts.add("FONTNAME",   (1, i), (-1, i), "Helvetica-Bold")
     t.setStyle(ts)
     story.append(t)
 
@@ -1169,9 +1567,7 @@ def build_board_narrative(data, styles):
     story = [SectionHeader("Board Narrative"), Spacer(1, 0.4 * cm)]
 
     narrative = syn.get("board_narrative", "")
-    # Split into paragraphs
     paras = [p.strip() for p in narrative.split(". ") if p.strip()]
-    # Reconstruct as sentences grouped into 2
     groups = []
     for i in range(0, len(paras), 2):
         chunk = ". ".join(paras[i:i+2])
@@ -1191,7 +1587,7 @@ def build_board_narrative(data, styles):
     rows = [["Scenario", "Recommended Option", "Expected Outcome", "Key Assumptions"]]
     for b in branches:
         rows.append([
-            Paragraph(b.get("scenario","").upper(), styles["table_cell_c"]),
+            Paragraph(b.get("scenario","").upper(), styles["cell_label_c"]),
             Paragraph(b.get("recommended_option",""), styles["table_cell"]),
             Paragraph(b.get("expected_outcome",""), styles["table_cell"]),
             Paragraph(" | ".join(b.get("key_assumptions",[])), styles["small"]),
@@ -1210,14 +1606,15 @@ def build_appendix(data, styles):
         styles["body"]))
     story.append(Spacer(1, 0.3*cm))
 
-    ext = data.get("external", {})
+    ext    = data.get("external", {})
     internal = data.get("internal", {})
-    pos = data.get("position", {})
-    comp = data.get("competitive", {})
-    form = data.get("formulation", {})
-    risk = data.get("risk", {})
+    pos    = data.get("position", {})
+    comp   = data.get("competitive", {})
+    form   = data.get("formulation", {})
+    risk   = data.get("risk", {})
     exec_d = data.get("execution", {})
-    syn = data.get("synthesis", {})
+    fin    = data.get("finance") or {}
+    syn    = data.get("synthesis", {})
 
     rows = [["Agent / Framework", "Score / Value", "Notes"]]
     score_rows = [
@@ -1235,6 +1632,8 @@ def build_appendix(data, styles):
          "Composite risk level"),
         ("Execution Readiness",   f"{exec_d.get('execution_readiness_score','')} / 100",
          "Capability & readiness"),
+        ("Financial Analysis",    f"{fin.get('financial_fit_score','')} / 100",
+         "Financial viability"),
         ("Overall Strategic Fit", f"{syn.get('overall_strategic_fit_score','')} / 100",
          "Synthesis score"),
     ]
@@ -1248,8 +1647,7 @@ def build_appendix(data, styles):
 
     aw = PAGE_W - 2 * MARGIN
     t = Table(rows, colWidths=[5*cm, 3*cm, aw-5*cm-3*cm])
-    ts = std_table_style()
-    # Highlight overall
+    ts = std_table_style(first_col=False)
     ts.add("BACKGROUND", (0, len(score_rows)), (-1, len(score_rows)), colors.HexColor("#E8EDF5"))
     ts.add("FONTNAME",   (0, len(score_rows)), (-1, len(score_rows)), "Helvetica-Bold")
     t.setStyle(ts)
@@ -1260,7 +1658,7 @@ def build_appendix(data, styles):
     rows2 = [["Force", "Score / 10", "Intensity"]]
     for f in forces:
         rows2.append([
-            Paragraph(f["force"], styles["table_cell"]),
+            Paragraph(f["force"], styles["cell_label"]),
             Paragraph(str(f["score"]), styles["table_cell_c"]),
             Paragraph(f["intensity"].upper(), styles["table_cell_c"]),
         ])
@@ -1272,13 +1670,12 @@ def build_appendix(data, styles):
         t2,
     ]))
 
-    # McKinsey 7S scores — KeepTogether prevents an orphaned last row.
-    # repeatRows=1 repeats the header if the table must split across pages anyway.
+    # McKinsey 7S scores
     s7 = internal.get("mckinsey_7s", [])
     rows3 = [["Element", "Alignment Score", "Assessment"]]
     for el in s7:
         rows3.append([
-            Paragraph(el["element"], styles["table_cell"]),
+            Paragraph(el["element"], styles["cell_label"]),
             Paragraph(str(el.get("alignment_score","")), styles["table_cell_c"]),
             Paragraph(el.get("assessment",""), styles["table_cell"]),
         ])
@@ -1294,6 +1691,13 @@ def build_appendix(data, styles):
 
 
 # ── Main generator ────────────────────────────────────────────────────────────
+
+class StrategyDocTemplate(BaseDocTemplate):
+    """Doc template that tracks the current section for the page footer."""
+    def afterFlowable(self, flowable):
+        if isinstance(flowable, SectionHeader):
+            self._section = flowable.text
+
 
 def generate_report(json_path: str, output_path: str) -> None:
     with open(json_path, "r", encoding="utf-8") as f:
@@ -1326,9 +1730,9 @@ def generate_report(json_path: str, output_path: str) -> None:
 
     def normal_tpl():
         return PageTemplate(id="Normal", frames=[frame_normal],
-                            onPage=_header_footer)
+                            onPageEnd=_header_footer)
 
-    doc = BaseDocTemplate(
+    doc = StrategyDocTemplate(
         output_path,
         pagesize=A4,
         pageTemplates=[cover_tpl(), normal_tpl()],
@@ -1337,43 +1741,53 @@ def generate_report(json_path: str, output_path: str) -> None:
         leftMargin=MARGIN, rightMargin=MARGIN,
         topMargin=MARGIN + 1.8*cm, bottomMargin=MARGIN + 1*cm,
     )
+    # Header/footer context
+    doc._company = data.get("company", "")
+    doc._date = datetime.now().strftime("%B %d, %Y")
+    doc._section = ""
 
     story = []
 
     # 1. Cover (NextPageTemplate("Normal") is embedded at the end of build_cover)
     story += build_cover(data, styles)
 
-    # 2. Executive Summary
+    # 2. Table of Contents
+    story += build_toc(data, styles)
+
+    # 3. Executive Summary
     story += build_executive_summary(data, styles, charts_dir)
 
-    # 3. External Environment
+    # 4. External Environment
     story += build_external(data, styles, charts_dir)
 
-    # 4. Internal Audit
+    # 5. Internal Audit
     story += build_internal(data, styles)
 
-    # 5. Strategic Position
+    # 6. Strategic Position
     story += build_position(data, styles)
 
-    # 6. Competitive Dynamics
+    # 7. Competitive Dynamics
     story += build_competitive(data, styles)
 
-    # 7. Strategy Formulation
+    # 8. Strategy Formulation
     story += build_formulation(data, styles)
 
-    # 8. Risk & Scenarios
+    # 9. Risk & Scenarios
     story += build_risk(data, styles)
 
-    # 9. Execution Roadmap
+    # 10. Execution Roadmap
     story += build_execution(data, styles)
 
-    # 10. Strategic Options Ranking
+    # 11. Financial Viability Analysis
+    story += build_financial_viability(data, styles, charts_dir)
+
+    # 12. Strategic Options Ranking
     story += build_options_ranking(data, styles, charts_dir)
 
-    # 11. Board Narrative
+    # 13. Board Narrative
     story += build_board_narrative(data, styles)
 
-    # 12. Appendix
+    # 14. Appendix
     story += build_appendix(data, styles)
 
     doc.build(story)
@@ -1383,7 +1797,6 @@ def generate_report(json_path: str, output_path: str) -> None:
 # ── CLI entry ─────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    import os
     base = os.path.dirname(os.path.abspath(__file__))
     json_path   = os.path.join(base, "output.json")
     output_path = os.path.join(base, "strategy_report.pdf")

@@ -37,6 +37,7 @@ async def run_simulation(company: str, industry: str, strategic_question: str, c
         "formulation": state.formulation.model_dump(),
         "risk": state.risk.model_dump(),
         "execution": state.execution.model_dump(),
+        "finance": state.finance.model_dump() if state.finance else None,
         "synthesis": synthesis.model_dump()
     }
 

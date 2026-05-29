@@ -13,6 +13,8 @@ from agents.competitive_agent import run_competitive_agent
 from agents.formulation_agent import run_formulation_agent
 from agents.risk_agent import run_risk_agent
 from agents.execution_agent import run_execution_agent
+from schemas.finance_schema import FinanceAgentOutput
+from agents.finance_agent import run_finance_agent
 from dataclasses import dataclass
 
 @dataclass
@@ -27,6 +29,7 @@ class SimulatorState:
     formulation: FormulationAgentOutput = None
     risk: RiskAgentOutput = None
     execution: ExecutionAgentOutput = None
+    finance: FinanceAgentOutput = None
 
 def _build_rag_fetcher(company_name: str):
     """Return a context-fetching function if RAG is available, else a no-op."""
@@ -106,6 +109,13 @@ async def run_orchestrator(
         company, industry, strategic_question,
         state.formulation, state.risk,
         context=fetch("implementation operations milestones KPIs execution roadmap initiatives"),
+    )
+
+    print("💰 Running Finance agent...")
+    state.finance = await run_finance_agent(
+        company, industry, strategic_question,
+        state.formulation, state.execution,
+        context=fetch("financial performance revenue EBITDA cash flow valuation cap table funding burn rate"),
     )
 
     print("✅ All agents complete.")

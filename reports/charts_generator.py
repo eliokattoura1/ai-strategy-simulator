@@ -444,6 +444,246 @@ def _strategic_options_bar(data: dict, out: str) -> None:
     _save(fig, out)
 
 
+# ── 6. DCF Waterfall (Year 3) ─────────────────────────────────────────────────
+
+def _dcf_waterfall(data: dict, out: str) -> None:
+    dcf = data["finance"]["dcf"]
+    cf  = dcf["cash_flows"][2]          # Year 3 (index 2)
+
+    revenue = float(cf["revenue"])
+    cogs    = float(cf["cogs"])
+    opex    = float(cf["opex"])
+    ebitda  = revenue - cogs - opex
+
+    GREEN = "#1A7A4A"
+    RED   = "#B22222"
+
+    fig = go.Figure(go.Waterfall(
+        orientation="v",
+        measure=["absolute", "relative", "relative", "total"],
+        x=["Revenue", "COGS", "OPEX", "EBITDA"],
+        y=[revenue, -cogs, -opex, 0],
+        text=[
+            f"${revenue / 1e6:.1f}M",
+            f"−${cogs / 1e6:.1f}M",
+            f"−${opex / 1e6:.1f}M",
+            f"${ebitda / 1e6:.1f}M",
+        ],
+        textposition="outside",
+        textfont=dict(size=13, color=NAVY),
+        increasing=dict(marker=dict(color=GREEN, line=dict(color=GREEN, width=1))),
+        decreasing=dict(marker=dict(color=RED,   line=dict(color=RED,   width=1))),
+        totals=dict(   marker=dict(color=NAVY,   line=dict(color=NAVY,  width=1))),
+        connector=dict(line=dict(color=MGRAY, width=1, dash="dot")),
+    ))
+
+    fig.update_layout(
+        **_LAYOUT_BASE,
+        title=dict(
+            text=f"DCF Waterfall — Year 3  (WACC {dcf['wacc']:.1f}%)",
+            x=0.5, xanchor="center",
+        ),
+        xaxis=dict(
+            title="",
+            showgrid=False,
+            tickfont=dict(size=14),
+        ),
+        yaxis=dict(
+            title="USD",
+            showgrid=True, gridcolor=MGRAY,
+            zeroline=True, zerolinecolor=NAVY, zerolinewidth=1.5,
+            tickformat="$.2s",
+        ),
+        showlegend=False,
+        height=H,
+        width=W,
+    )
+    _save(fig, out)
+
+
+# ── 7. Cumulative FCF ─────────────────────────────────────────────────────────
+
+def _fcf_cumulative(data: dict, out: str) -> None:
+    dcf     = data["finance"]["dcf"]
+    ev      = float(dcf["enterprise_value"])
+    npv     = float(dcf["npv"])
+    payback = float(dcf["payback_period_years"])
+
+    # Year 0: net investment = portion of EV not recovered by discounted FCFs
+    years    = [0]
+    cum_fcfs = [-(ev - npv)]
+
+    running = cum_fcfs[0]
+    for cf in dcf["cash_flows"]:
+        fcf = (float(cf["revenue"]) - float(cf["cogs"])
+               - float(cf["opex"])  - float(cf["capex"]))
+        running += fcf
+        years.append(cf["year"])
+        cum_fcfs.append(running)
+
+    fig = go.Figure()
+
+    # Red shading below zero
+    y_min = min(cum_fcfs) * 1.15
+    fig.add_hrect(
+        y0=y_min, y1=0,
+        fillcolor="rgba(178,34,34,0.06)",
+        line_width=0,
+        layer="below",
+    )
+
+    # Main cumulative FCF line
+    fig.add_trace(go.Scatter(
+        x=years,
+        y=cum_fcfs,
+        mode="lines+markers",
+        line=dict(color=NAVY, width=2.5),
+        marker=dict(size=8, color=NAVY, line=dict(color=WHITE, width=1.5)),
+        name="Cumulative FCF",
+        hovertemplate="Year %{x}<br>Cumulative FCF: $%{y:,.0f}<extra></extra>",
+    ))
+
+    # Gold dashed break-even line
+    fig.add_hline(
+        y=0,
+        line=dict(color=GOLD, width=1.5, dash="dash"),
+        annotation_text="Break-even",
+        annotation_position="top right",
+        annotation_font=dict(size=10, color=GOLD),
+    )
+
+    # Gold star at payback point (payback_period_years, 0)
+    fig.add_trace(go.Scatter(
+        x=[payback],
+        y=[0],
+        mode="markers+text",
+        marker=dict(size=15, color=GOLD, symbol="star",
+                    line=dict(color=NAVY, width=1.5)),
+        text=[f"  Payback ({payback:.1f} yrs)"],
+        textposition="middle right",
+        textfont=dict(size=11, color=GOLD),
+        name="Payback Point",
+        hovertemplate=f"Payback: {payback:.1f} years<extra></extra>",
+    ))
+
+    fig.update_layout(
+        **_LAYOUT_BASE,
+        title=dict(text="Cumulative Free Cash Flow", x=0.5, xanchor="center"),
+        xaxis=dict(
+            title="Year",
+            tickvals=years,
+            tickfont=dict(size=12),
+            showgrid=True, gridcolor=MGRAY,
+            zeroline=False,
+        ),
+        yaxis=dict(
+            title="USD",
+            showgrid=True, gridcolor=MGRAY,
+            zeroline=False,
+            tickformat="$.2s",
+        ),
+        legend=dict(
+            x=1.02, y=0.98,
+            font=dict(size=10),
+            bgcolor="rgba(255,255,255,0.9)",
+            bordercolor=MGRAY, borderwidth=1,
+        ),
+        height=H,
+        width=W,
+    )
+    _save(fig, out)
+
+
+# ── 8. Valuation Comps (EV/EBITDA) ───────────────────────────────────────────
+
+def _valuation_comps(data: dict, out: str) -> None:
+    val   = data["finance"]["valuation"]
+    comps = val.get("comparable_companies", [])
+    if not comps:
+        return
+
+    subject_name     = data.get("company", "Subject")
+    subject_multiple = float(val.get("subject_ev_ebitda", 0))
+
+    comp_names     = [c["company"]        for c in comps]
+    comp_multiples = [float(c["ev_ebitda"]) for c in comps]
+
+    # Median of comparable companies (no statistics import needed)
+    sorted_m    = sorted(comp_multiples)
+    n           = len(sorted_m)
+    median_comp = (sorted_m[n // 2] + sorted_m[(n - 1) // 2]) / 2
+
+    all_names     = comp_names + [subject_name]
+    all_multiples = comp_multiples + [subject_multiple]
+    bar_colors    = [NAVY] * len(comps) + [GOLD]
+
+    fig = go.Figure()
+
+    fig.add_trace(go.Bar(
+        x=all_names,
+        y=all_multiples,
+        marker=dict(
+            color=bar_colors,
+            line=dict(color=NAVY, width=0.8),
+        ),
+        text=[f"{v:.1f}x" for v in all_multiples],
+        textposition="outside",
+        textfont=dict(size=11, color=NAVY),
+        cliponaxis=False,
+        name="EV/EBITDA",
+        hovertemplate="%{x}<br>EV/EBITDA: %{y:.1f}x<extra></extra>",
+    ))
+
+    # Median comp dashed line
+    fig.add_hline(
+        y=median_comp,
+        line=dict(color=GOLD, width=1.5, dash="dash"),
+    )
+    fig.add_annotation(
+        x=len(all_names) - 1,
+        y=median_comp,
+        text=f"  Median comp: {median_comp:.1f}x",
+        showarrow=False,
+        font=dict(size=10, color=GOLD),
+        xanchor="left",
+        yanchor="bottom",
+    )
+
+    # Legend proxies for bar colours
+    for color, label in [(NAVY, "Comparable Companies"), (GOLD, "Subject Company")]:
+        fig.add_trace(go.Bar(x=[None], y=[None], name=label,
+                             marker=dict(color=color)))
+
+    fig.update_layout(
+        **_LAYOUT_BASE,
+        title=dict(
+            text=f"EV/EBITDA Valuation Comps — Method: {val.get('valuation_method_used', '')}",
+            x=0.5, xanchor="center",
+        ),
+        xaxis=dict(
+            title="",
+            tickfont=dict(size=11),
+            showgrid=False,
+        ),
+        yaxis=dict(
+            title="EV / EBITDA Multiple (x)",
+            showgrid=True, gridcolor=MGRAY,
+            zeroline=False,
+            ticksuffix="x",
+        ),
+        barmode="group",
+        legend=dict(
+            x=1.02, y=0.98,
+            font=dict(size=10),
+            bgcolor="rgba(255,255,255,0.9)",
+            bordercolor=MGRAY, borderwidth=1,
+        ),
+        height=H,
+        width=W,
+    )
+    _save(fig, out)
+
+
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 def generate_all_charts(json_path: str) -> None:
@@ -462,6 +702,20 @@ def generate_all_charts(json_path: str) -> None:
     _bcg(data,                   p("bcg_matrix.png"))
     _scenario_comparison(data,   p("scenario_comparison.png"))
     _strategic_options_bar(data, p("strategic_options_bar.png"))
+
+    try:
+        _dcf_waterfall(data,  p("dcf_waterfall.png"))
+    except Exception as exc:
+        print(f"  dcf_waterfall skipped — {exc}")
+    try:
+        _fcf_cumulative(data, p("fcf_cumulative.png"))
+    except Exception as exc:
+        print(f"  fcf_cumulative skipped — {exc}")
+    try:
+        _valuation_comps(data, p("valuation_comps.png"))
+    except Exception as exc:
+        print(f"  valuation_comps skipped — {exc}")
+
     print(f"Done — {charts_dir}")
 
 
