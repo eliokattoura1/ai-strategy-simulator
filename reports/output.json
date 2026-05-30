@@ -2,43 +2,44 @@
   "company": "Bank Audi",
   "industry": "Lebanese Banking & Financial Services",
   "strategic_question": "Should Bank Audi expand into fintech or defend its core banking position?",
+  "failed_agents": [],
   "external": {
     "company": "Bank Audi",
     "industry": "Lebanese Banking & Financial Services",
     "pestel": [
       {
         "factor": "Political",
-        "description": "Lebanon's political instability and frequent government changes can disrupt banking operations.",
+        "description": "Lebanon's political instability and regulatory environment can affect banking operations.",
         "impact": "high",
         "direction": "threat"
       },
       {
         "factor": "Economic",
-        "description": "High inflation at 45.2% and negative GDP growth of -0.8% indicate a challenging economic environment.",
+        "description": "Economic challenges, including currency devaluation and inflation, impact consumer purchasing power.",
         "impact": "high",
         "direction": "threat"
       },
       {
         "factor": "Social",
-        "description": "A young population with increasing digital literacy presents an opportunity for fintech solutions.",
+        "description": "Increasing demand for digital banking services among younger demographics.",
         "impact": "medium",
         "direction": "opportunity"
       },
       {
         "factor": "Technological",
-        "description": "Rapid technological advancements in fintech can enable innovative banking solutions.",
+        "description": "Rapid advancements in fintech present opportunities for innovation in banking services.",
         "impact": "high",
         "direction": "opportunity"
       },
       {
         "factor": "Environmental",
-        "description": "Environmental concerns are growing, but have a low direct impact on banking.",
+        "description": "Growing emphasis on sustainable banking practices and green finance.",
         "impact": "low",
-        "direction": "threat"
+        "direction": "opportunity"
       },
       {
         "factor": "Legal",
-        "description": "Regulatory changes in the banking sector can affect operations and compliance costs.",
+        "description": "Compliance with international banking regulations and anti-money laundering laws.",
         "impact": "medium",
         "direction": "threat"
       }
@@ -48,47 +49,48 @@
         "force": "Competitive Rivalry",
         "intensity": "high",
         "score": 8.0,
-        "rationale": "Intense competition among local banks and new fintech entrants."
+        "rationale": "High number of banks in Lebanon and competition from international banks."
       },
       {
         "force": "Supplier Power",
         "intensity": "medium",
         "score": 5.0,
-        "rationale": "Suppliers of technology and financial services have moderate bargaining power."
+        "rationale": "Limited number of technology suppliers for banking infrastructure."
       },
       {
         "force": "Buyer Power",
         "intensity": "high",
         "score": 7.0,
-        "rationale": "Customers have high bargaining power due to the availability of alternative financial services."
+        "rationale": "Customers have high bargaining power due to availability of alternative banking services."
       },
       {
         "force": "Threat of Substitutes",
-        "intensity": "high",
-        "score": 8.0,
-        "rationale": "Fintech solutions and digital banking offer strong substitutes for traditional banking."
+        "intensity": "medium",
+        "score": 6.0,
+        "rationale": "Emergence of fintech solutions as alternatives to traditional banking."
       },
       {
         "force": "Threat of New Entrants",
         "intensity": "medium",
-        "score": 6.0,
-        "rationale": "Barriers to entry are moderate, with regulatory requirements but opportunities in digital banking."
+        "score": 5.0,
+        "rationale": "Barriers to entry are moderate due to regulatory requirements but fintech reduces these barriers."
       }
     ],
     "industry_lifecycle": {
-      "stage": "shakeout",
-      "rationale": "The industry is experiencing consolidation and increased competition from fintech.",
-      "strategic_implication": "Bank Audi should consider diversifying into fintech to remain competitive."
+      "stage": "mature",
+      "rationale": "The Lebanese banking industry is well-established with a stable customer base but faces challenges from new technologies.",
+      "strategic_implication": "Focus on innovation and differentiation to maintain market position."
     },
-    "overall_attractiveness_score": 45.0,
+    "overall_attractiveness_score": 55.0,
     "key_external_threats": [
-      "Political instability",
-      "High inflation and negative GDP growth",
-      "Intense competition from fintech"
+      "Political instability and regulatory changes",
+      "Economic downturn and currency devaluation",
+      "High competitive rivalry within the banking sector"
     ],
     "key_external_opportunities": [
-      "Growing digital literacy among the population",
-      "Advancements in fintech technology"
+      "Expansion into fintech and digital banking",
+      "Growing demand for sustainable banking solutions",
+      "Leveraging technology to improve customer experience"
     ]
   },
   "internal": {
@@ -105,13 +107,13 @@
       {
         "resource": "Customer Base",
         "valuable": true,
-        "rare": true,
+        "rare": false,
         "inimitable": false,
         "organized": true,
-        "competitive_implication": "TCA"
+        "competitive_implication": "CP"
       },
       {
-        "resource": "Digital Banking Platform",
+        "resource": "Technological Infrastructure",
         "valuable": true,
         "rare": false,
         "inimitable": false,
@@ -127,29 +129,29 @@
         "competitive_implication": "SCA"
       },
       {
-        "resource": "Branch Network",
+        "resource": "Regulatory Compliance",
         "valuable": true,
-        "rare": false,
-        "inimitable": false,
+        "rare": true,
+        "inimitable": true,
         "organized": true,
-        "competitive_implication": "CP"
+        "competitive_implication": "SCA"
       }
     ],
     "mckinsey_7s": [
       {
         "element": "Strategy",
-        "assessment": "Focused on core banking with emerging interest in fintech",
-        "alignment_score": 70.0
+        "assessment": "Focused on core banking services with consideration for fintech expansion",
+        "alignment_score": 75.0
       },
       {
         "element": "Structure",
-        "assessment": "Hierarchical with centralized decision-making",
-        "alignment_score": 65.0
+        "assessment": "Hierarchical structure with clear divisions",
+        "alignment_score": 70.0
       },
       {
         "element": "Systems",
-        "assessment": "Robust banking systems with growing digital integration",
-        "alignment_score": 75.0
+        "assessment": "Robust banking systems with emerging fintech capabilities",
+        "alignment_score": 65.0
       },
       {
         "element": "Shared Values",
@@ -158,18 +160,18 @@
       },
       {
         "element": "Skills",
-        "assessment": "Strong financial and risk management skills",
-        "alignment_score": 85.0
-      },
-      {
-        "element": "Style",
-        "assessment": "Conservative management style",
+        "assessment": "Strong financial skills with growing tech expertise",
         "alignment_score": 60.0
       },
       {
-        "element": "Staff",
-        "assessment": "Experienced workforce with expertise in traditional banking",
+        "element": "Style",
+        "assessment": "Conservative management style with openness to innovation",
         "alignment_score": 70.0
+      },
+      {
+        "element": "Staff",
+        "assessment": "Experienced staff with a mix of traditional and tech skills",
+        "alignment_score": 65.0
       }
     ],
     "value_chain": [
@@ -195,9 +197,9 @@
         "value_driver": false
       },
       {
-        "activity": "Marketing & Sales",
+        "activity": "Marketing and Sales",
         "type": "primary",
-        "strength": "average",
+        "strength": "strong",
         "cost_driver": false,
         "value_driver": true
       },
@@ -218,7 +220,7 @@
       {
         "activity": "Technology Development",
         "type": "support",
-        "strength": "strong",
+        "strength": "average",
         "cost_driver": false,
         "value_driver": true
       },
@@ -232,236 +234,252 @@
       {
         "activity": "Firm Infrastructure",
         "type": "support",
-        "strength": "average",
+        "strength": "strong",
         "cost_driver": true,
-        "value_driver": false
+        "value_driver": true
       }
     ],
     "core_competencies": [
       "Strong brand reputation",
-      "Extensive financial expertise",
-      "Robust digital banking platform"
+      "Financial expertise",
+      "Regulatory compliance"
     ],
-    "internal_strength_score": 75.0,
+    "internal_strength_score": 72.0,
     "key_strengths": [
       "Strong brand reputation",
-      "Extensive branch network",
-      "Robust digital banking platform"
+      "Robust financial expertise",
+      "Effective regulatory compliance"
     ],
     "key_weaknesses": [
-      "Conservative management style",
-      "Centralized decision-making structure"
+      "Limited technological infrastructure",
+      "Conservative management style"
     ]
   },
   "position": {
     "strengths": [
       {
         "item": "Strong brand reputation",
-        "impact_score": 9
+        "impact_score": 8
       },
       {
-        "item": "Extensive branch network",
+        "item": "Robust financial expertise",
         "impact_score": 7
       },
       {
-        "item": "Robust digital banking platform",
-        "impact_score": 8
+        "item": "Effective regulatory compliance",
+        "impact_score": 6
       }
     ],
     "weaknesses": [
       {
-        "item": "Conservative management style",
-        "impact_score": 6
+        "item": "Limited technological infrastructure",
+        "impact_score": 7
       },
       {
-        "item": "Centralized decision-making structure",
-        "impact_score": 5
+        "item": "Conservative management style",
+        "impact_score": 6
       }
     ],
     "opportunities": [
       {
-        "item": "Growing digital literacy among the population",
+        "item": "Expansion into fintech and digital banking",
+        "impact_score": 9
+      },
+      {
+        "item": "Growing demand for sustainable banking solutions",
         "impact_score": 8
       },
       {
-        "item": "Advancements in fintech technology",
-        "impact_score": 9
+        "item": "Leveraging technology to improve customer experience",
+        "impact_score": 7
       }
     ],
     "threats": [
       {
-        "item": "Political instability",
+        "item": "Political instability and regulatory changes",
         "impact_score": 9
       },
       {
-        "item": "High inflation and negative GDP growth",
+        "item": "Economic downturn and currency devaluation",
         "impact_score": 8
       },
       {
-        "item": "Intense competition from fintech",
+        "item": "High competitive rivalry within the banking sector",
         "impact_score": 7
       }
     ],
     "tows_strategies": [
       {
         "type": "SO",
-        "strategy": "Leverage robust digital banking platform to capitalize on growing digital literacy.",
-        "rationale": "This will enhance customer engagement and expand market reach."
+        "strategy": "Leverage strong brand reputation to expand into fintech and digital banking",
+        "rationale": "Utilize brand strength to capture fintech market share."
       },
       {
         "type": "ST",
-        "strategy": "Utilize strong brand reputation to differentiate from fintech competitors.",
-        "rationale": "This will help maintain customer loyalty amidst intense competition."
+        "strategy": "Use robust financial expertise to mitigate economic downturn risks",
+        "rationale": "Financial expertise can help navigate economic challenges."
       },
       {
         "type": "WO",
-        "strategy": "Adopt a more flexible management style to better integrate fintech advancements.",
-        "rationale": "This will allow faster adaptation to technological changes."
+        "strategy": "Invest in technological infrastructure to capitalize on digital banking opportunities",
+        "rationale": "Addressing tech limitations can unlock new growth areas."
       },
       {
         "type": "WT",
-        "strategy": "Decentralize decision-making to respond swiftly to political and economic threats.",
-        "rationale": "This will improve resilience and operational agility."
+        "strategy": "Enhance management flexibility to better respond to political and economic threats",
+        "rationale": "Adaptive management can better handle external threats."
       }
     ],
     "bcg_positions": [
       {
-        "unit": "Core Banking",
-        "market_share": 0.7,
+        "unit": "Core Banking Services",
+        "market_share": 0.6,
         "market_growth": 0.02,
         "quadrant": "cash cow",
-        "recommendation": "Defend and optimize operations to maintain profitability."
+        "recommendation": "Defend and maintain market position."
       },
       {
-        "unit": "Digital Banking",
-        "market_share": 0.4,
+        "unit": "Fintech Services",
+        "market_share": 0.1,
         "market_growth": 0.15,
-        "quadrant": "star",
-        "recommendation": "Invest in growth and innovation to capture market potential."
+        "quadrant": "question mark",
+        "recommendation": "Invest to increase market share."
       }
     ],
     "ansoff_options": [
       {
         "quadrant": "market penetration",
-        "initiative": "Enhance digital banking services to increase customer usage.",
+        "initiative": "Enhance customer loyalty programs in core banking",
         "risk_level": "low",
-        "rationale": "Leverages existing capabilities and market presence."
+        "rationale": "Strengthen existing customer relationships."
+      },
+      {
+        "quadrant": "market development",
+        "initiative": "Expand digital banking services to new markets",
+        "risk_level": "medium",
+        "rationale": "Leverage brand to enter new geographical areas."
       },
       {
         "quadrant": "product development",
-        "initiative": "Develop new fintech solutions to complement existing banking services.",
+        "initiative": "Develop new fintech products",
         "risk_level": "medium",
-        "rationale": "Expands product offerings and meets evolving customer needs."
+        "rationale": "Innovate to meet evolving customer needs."
+      },
+      {
+        "quadrant": "diversification",
+        "initiative": "Explore partnerships with tech firms for fintech solutions",
+        "risk_level": "high",
+        "rationale": "Diversify offerings through strategic alliances."
       }
     ],
-    "strategic_position_score": 65
+    "strategic_position_score": 68
   },
   "competitive": {
     "game_theory_scenarios": [
       {
         "scenario": "Expand into fintech",
-        "our_move": "Develop new fintech solutions",
-        "competitor_response": "Enhance fintech offerings",
+        "our_move": "Develop new fintech products",
+        "competitor_response": "Increase investment in digital banking",
         "payoff_us": 7,
         "payoff_competitor": 6,
         "nash_equilibrium": true,
         "recommended": true
       },
       {
-        "scenario": "Defend core banking",
-        "our_move": "Enhance digital banking services",
-        "competitor_response": "Aggressively market fintech solutions",
+        "scenario": "Defend core banking position",
+        "our_move": "Enhance customer loyalty programs",
+        "competitor_response": "Aggressive marketing to capture market share",
         "payoff_us": 5,
-        "payoff_competitor": 8,
+        "payoff_competitor": 7,
         "nash_equilibrium": false,
         "recommended": false
       }
     ],
     "errc_grid": [
       {
-        "factor": "Traditional banking fees",
-        "action": "eliminate",
-        "rationale": "Removing fees can attract more customers to digital platforms.",
+        "factor": "Traditional banking services",
+        "action": "reduce",
+        "rationale": "Shift focus towards digital and fintech solutions to meet changing customer preferences.",
         "impact": 7
       },
       {
-        "factor": "Complexity of services",
-        "action": "reduce",
-        "rationale": "Simplifying services will improve customer experience and retention.",
-        "impact": 6
-      },
-      {
-        "factor": "Digital banking capabilities",
+        "factor": "Customer service touchpoints",
         "action": "raise",
-        "rationale": "Enhancing digital capabilities will meet customer expectations and fend off fintech competition.",
+        "rationale": "Enhance digital customer service to improve user experience and satisfaction.",
         "impact": 8
       },
       {
-        "factor": "Fintech partnerships",
+        "factor": "Partnerships with tech firms",
         "action": "create",
-        "rationale": "Forming partnerships with fintechs can provide innovative solutions and expand market reach.",
+        "rationale": "Form alliances with technology companies to accelerate fintech development.",
         "impact": 9
+      },
+      {
+        "factor": "Branch network",
+        "action": "eliminate",
+        "rationale": "Reduce physical branches to cut costs and reallocate resources to digital expansion.",
+        "impact": 6
       }
     ],
-    "blue_ocean_opportunity": "Create a seamless hybrid banking platform integrating fintech solutions with traditional banking services.",
-    "competitive_intensity_score": 78,
-    "recommended_competitive_posture": "Aggressive expansion into fintech to capture new market segments and mitigate competitive threats."
+    "blue_ocean_opportunity": "Create a seamless digital banking ecosystem by integrating fintech solutions with existing services to offer a unique customer experience.",
+    "competitive_intensity_score": 75,
+    "recommended_competitive_posture": "Proactive expansion into fintech with strategic partnerships to create a differentiated digital offering."
   },
   "formulation": {
     "strategy_clock_positions": [
       {
         "position": 4,
         "label": "Differentiation",
-        "price_point": "Moderate to high",
+        "price_point": "Premium",
         "perceived_value": "High",
-        "viability": "Strong due to unique hybrid offerings combining fintech and traditional banking"
+        "viability": "Strong"
       }
     ],
     "generic_strategies": [
       {
         "strategy": "differentiation",
-        "rationale": "Leveraging strong brand reputation and robust digital banking platform to integrate fintech solutions, offering unique value to customers.",
+        "rationale": "Bank Audi should leverage its strong brand reputation and financial expertise to create a differentiated digital offering by integrating fintech solutions. This will enhance customer experience and maintain a competitive edge.",
         "fit_score": 85,
         "risks": [
-          "Integration challenges",
-          "Regulatory hurdles",
-          "Market acceptance"
+          "Regulatory challenges",
+          "Integration complexities",
+          "Market adoption uncertainty"
         ]
       }
     ],
     "recommended_strategy": "differentiation",
-    "strategic_logic": "Bank Audi should pursue a differentiation strategy by expanding into fintech, leveraging its strong brand and digital capabilities to offer a unique hybrid banking platform that integrates fintech solutions with traditional banking services. This approach aligns with its aggressive expansion strategy and addresses competitive threats while capturing new market segments.",
-    "formulation_confidence_score": 80
+    "strategic_logic": "Bank Audi's proactive expansion into fintech aligns with its core competencies and strategic position scores. By focusing on differentiation through fintech integration, the bank can capitalize on blue ocean opportunities and offer a unique digital banking ecosystem.",
+    "formulation_confidence_score": 85
   },
   "risk": {
     "steep_scenarios": [
       {
         "name": "optimistic",
-        "social": "Increased digital adoption among the young population boosts fintech growth.",
-        "technological": "Successful integration of advanced fintech solutions enhances customer experience.",
-        "economic": "Inflation stabilizes and GDP growth turns positive, improving economic conditions.",
-        "environmental": "Minimal impact from environmental factors on banking operations.",
-        "political": "Political stability improves, leading to a more favorable business environment.",
+        "social": "Strong adoption of digital banking services by younger demographics.",
+        "technological": "Successful integration of fintech innovations enhances customer experience.",
+        "economic": "Economic stabilization with improved currency valuation and reduced inflation.",
+        "environmental": "Increased investment in sustainable banking practices attracts eco-conscious customers.",
+        "political": "Political stability leads to a favorable regulatory environment for banking expansion.",
         "probability": 0.2,
         "impact_score": 8
       },
       {
         "name": "base",
-        "social": "Steady growth in digital literacy supports gradual fintech adoption.",
-        "technological": "Moderate advancements in fintech are integrated into existing services.",
-        "economic": "Inflation remains high but manageable; GDP growth remains slightly negative.",
-        "environmental": "Environmental factors remain a low priority for banking operations.",
-        "political": "Political instability persists, causing occasional disruptions.",
+        "social": "Moderate growth in digital banking adoption.",
+        "technological": "Steady progress in fintech adoption with some integration challenges.",
+        "economic": "Continued economic challenges with slow recovery.",
+        "environmental": "Gradual shift towards sustainable banking practices.",
+        "political": "Ongoing political instability with minor regulatory changes.",
         "probability": 0.5,
         "impact_score": 5
       },
       {
         "name": "stress",
-        "social": "Slow adoption of digital services due to economic hardships.",
-        "technological": "Technological advancements outpace the bank's ability to integrate them.",
-        "economic": "Inflation worsens and GDP growth declines further, straining economic conditions.",
-        "environmental": "Increased regulatory focus on environmental factors raises compliance costs.",
-        "political": "Severe political instability leads to frequent disruptions in banking operations.",
+        "social": "Slow adoption of digital services due to economic constraints.",
+        "technological": "Technological disruptions and cybersecurity threats hinder fintech integration.",
+        "economic": "Severe economic downturn with significant currency devaluation.",
+        "environmental": "Limited focus on sustainability due to economic pressures.",
+        "political": "Increased political instability and unfavorable regulatory changes.",
         "probability": 0.3,
         "impact_score": 3
       }
@@ -469,368 +487,379 @@
     "sensitivity_variables": [
       {
         "variable": "Political Stability",
-        "base_value": "unstable",
-        "optimistic_value": "stable",
-        "stress_value": "highly unstable",
-        "strategic_sensitivity": "high"
-      },
-      {
-        "variable": "Inflation Rate",
-        "base_value": "45.2%",
-        "optimistic_value": "30%",
-        "stress_value": "60%",
+        "base_value": "Unstable",
+        "optimistic_value": "Stable",
+        "stress_value": "Highly Unstable",
         "strategic_sensitivity": "critical"
       },
       {
-        "variable": "Technological Adoption",
-        "base_value": "moderate",
-        "optimistic_value": "high",
-        "stress_value": "low",
+        "variable": "Currency Valuation",
+        "base_value": "Weak",
+        "optimistic_value": "Stable",
+        "stress_value": "Severely Devalued",
+        "strategic_sensitivity": "high"
+      },
+      {
+        "variable": "Digital Banking Adoption",
+        "base_value": "Moderate",
+        "optimistic_value": "High",
+        "stress_value": "Low",
         "strategic_sensitivity": "medium"
+      },
+      {
+        "variable": "Fintech Integration",
+        "base_value": "Partial",
+        "optimistic_value": "Full",
+        "stress_value": "Minimal",
+        "strategic_sensitivity": "high"
       }
     ],
     "top_risks": [
-      "Political instability",
-      "High inflation and negative GDP growth",
-      "Intense competition from fintech"
+      "Political instability and regulatory changes",
+      "Economic downturn and currency devaluation",
+      "High competitive rivalry within the banking sector"
     ],
     "risk_score": 70,
     "mitigation_priorities": [
       "Enhance political risk management strategies",
-      "Develop inflation-hedging financial products",
-      "Invest in fintech partnerships and technology integration"
+      "Develop currency risk hedging mechanisms",
+      "Invest in competitive differentiation through fintech"
     ]
   },
   "execution": {
     "balanced_scorecard": [
       {
         "perspective": "financial",
-        "objective": "Increase revenue from fintech services",
-        "kpi": "Percentage of total revenue from fintech",
-        "target": "15% by end of year",
+        "objective": "Increase revenue from digital services",
+        "kpi": "Percentage of revenue from digital channels",
+        "target": "20% increase by year-end",
         "initiative": "Develop and launch new fintech products"
       },
       {
         "perspective": "customer",
         "objective": "Enhance customer satisfaction",
-        "kpi": "Customer satisfaction score",
-        "target": "85% by Q4",
+        "kpi": "Net Promoter Score (NPS)",
+        "target": "Increase NPS by 10 points",
         "initiative": "Implement a customer feedback system"
       },
       {
         "perspective": "internal",
         "objective": "Improve operational efficiency",
         "kpi": "Cost-to-income ratio",
-        "target": "45% by Q4",
+        "target": "Reduce by 5%",
         "initiative": "Automate routine banking processes"
       },
       {
         "perspective": "learning",
-        "objective": "Develop fintech capabilities",
+        "objective": "Develop fintech expertise",
         "kpi": "Number of employees trained in fintech",
-        "target": "200 employees by Q3",
-        "initiative": "Conduct fintech training programs"
+        "target": "Train 200 employees",
+        "initiative": "Launch a fintech training program"
       }
     ],
     "okrs": [
       {
-        "objective": "Launch new fintech platform",
+        "objective": "Expand digital banking capabilities",
         "key_results": [
-          "Complete platform development by Q2",
-          "Acquire 10,000 new users by Q3",
-          "Achieve 95% platform uptime by Q4"
+          "Launch 3 new fintech products by Q2",
+          "Increase digital customer base by 15% by Q2",
+          "Achieve 25% of transactions through digital channels by Q2"
         ],
-        "timeframe": "annual",
-        "owner": "CTO"
+        "timeframe": "Q2",
+        "owner": "Head of Digital Transformation"
       },
       {
-        "objective": "Increase digital transaction volume",
+        "objective": "Enhance customer engagement",
         "key_results": [
-          "Increase digital transactions by 30% by Q2",
-          "Reduce transaction processing time by 20% by Q3",
-          "Expand digital payment partnerships by 5 by Q4"
+          "Increase mobile app rating to 4.5 stars by Q1",
+          "Achieve 80% customer satisfaction score by Q1",
+          "Reduce customer complaints by 20% by Q1"
         ],
-        "timeframe": "annual",
-        "owner": "COO"
+        "timeframe": "Q1",
+        "owner": "Head of Customer Experience"
       }
     ],
     "critical_success_factors": [
-      "Successful integration of fintech solutions",
-      "Strong customer adoption of digital services",
-      "Effective risk management in volatile economic conditions"
+      "Successful integration of new fintech solutions",
+      "Maintaining customer trust and satisfaction",
+      "Adaptability to regulatory changes"
     ],
-    "execution_readiness_score": 70,
+    "execution_readiness_score": 75,
     "quick_wins": [
-      "Launch a marketing campaign for existing digital services",
-      "Enhance mobile app features to improve user experience"
+      "Enhance mobile banking app features",
+      "Launch a digital marketing campaign for fintech services"
     ]
   },
   "finance": {
     "dcf": {
-      "wacc": 15.0,
-      "terminal_growth_rate": 2.0,
-      "npv": 102488872.11,
-      "irr": 19.27,
-      "payback_period_years": 3.36,
-      "terminal_value": 194161707.69,
-      "enterprise_value": 152488872.11,
+      "wacc": 9.5,
+      "terminal_growth_rate": 2.5,
+      "npv": 7542829007.43,
+      "irr": 100.0,
+      "payback_period_years": 0.5,
+      "terminal_value": 8815000000.0,
+      "enterprise_value": 7592829007.43,
       "cash_flows": [
         {
           "year": 1,
-          "revenue": 70000000.0,
-          "cogs": 28000000.0,
-          "opex": 21000000.0,
-          "capex": 10000000.0
+          "revenue": 1500000000.0,
+          "cogs": 600000000.0,
+          "opex": 400000000.0,
+          "capex": 50000000.0
         },
         {
           "year": 2,
-          "revenue": 77000000.0,
-          "cogs": 30800000.0,
-          "opex": 23100000.0,
-          "capex": 9000000.0
+          "revenue": 1600000000.0,
+          "cogs": 640000000.0,
+          "opex": 420000000.0,
+          "capex": 52000000.0
         },
         {
           "year": 3,
-          "revenue": 84700000.0,
-          "cogs": 33880000.0,
-          "opex": 25410000.0,
-          "capex": 8000000.0
+          "revenue": 1700000000.0,
+          "cogs": 680000000.0,
+          "opex": 440000000.0,
+          "capex": 54000000.0
         },
         {
           "year": 4,
-          "revenue": 93170000.0,
-          "cogs": 37268000.0,
-          "opex": 27951000.0,
-          "capex": 7000000.0
+          "revenue": 1800000000.0,
+          "cogs": 720000000.0,
+          "opex": 460000000.0,
+          "capex": 56000000.0
         },
         {
           "year": 5,
-          "revenue": 102487000.0,
-          "cogs": 40994800.0,
-          "opex": 30746100.0,
-          "capex": 6000000.0
+          "revenue": 1900000000.0,
+          "cogs": 760000000.0,
+          "opex": 480000000.0,
+          "capex": 58000000.0
         }
       ]
     },
     "cap_table": {
       "total_shares_pre": 100000000,
-      "total_shares_post": 106666666,
+      "total_shares_post": 112500000,
       "shareholders": [
         {
-          "name": "Founders",
+          "name": "Founding Shareholders",
           "role": "Founder",
           "shares": 40000000,
           "ownership_pct": 40.0,
-          "ownership_post_pct": 37.5
+          "ownership_post_pct": 35.56
         },
         {
-          "name": "Seed Investors",
+          "name": "Institutional Investors",
           "role": "Investor",
-          "shares": 30000000,
-          "ownership_pct": 30.0,
-          "ownership_post_pct": 28.13
+          "shares": 50000000,
+          "ownership_pct": 50.0,
+          "ownership_post_pct": 44.44
         },
         {
           "name": "ESOP",
           "role": "ESOP",
           "shares": 10000000,
           "ownership_pct": 10.0,
-          "ownership_post_pct": 9.38
+          "ownership_post_pct": 8.89
         }
       ],
       "funding_round": {
-        "round_name": "Series A",
-        "amount_raised": 20000000.0,
-        "pre_money_valuation": 300000000.0,
-        "post_money_valuation": 320000000.0,
-        "new_shares_issued": 6666666,
-        "price_per_share": 3.0,
-        "investor_ownership_pct": 6.25
+        "round_name": "Series B",
+        "amount_raised": 100000000.0,
+        "pre_money_valuation": 800000000.0,
+        "post_money_valuation": 900000000.0,
+        "new_shares_issued": 12500000,
+        "price_per_share": 8.0,
+        "investor_ownership_pct": 11.11
       },
-      "founder_dilution_pct": 2.5,
-      "dilution_summary": "Founders diluted from 40.0% to 37.5% post Series A. New investors own 6.25%."
+      "founder_dilution_pct": 4.44,
+      "dilution_summary": "Founders diluted from 40.0% to 35.56% post Series B. New investors own 11.11%."
     },
     "burn": {
-      "monthly_burn": 2000000.0,
-      "monthly_revenue": 5833333.0,
+      "monthly_burn": 35000000.0,
+      "monthly_revenue": 125000000.0,
       "net_burn": 0.0,
-      "cash_on_hand": 30000000.0,
-      "runway_months": 999.0,
-      "break_even_month": 30000000,
+      "cash_on_hand": 200000000.0,
+      "runway_months": 200000000.0,
+      "break_even_month": 200000000,
       "burn_multiple": 0.0,
-      "unit_economics": {
-        "cac": 500.0,
-        "ltv": 600.0,
-        "ltv_cac_ratio": 1.2,
-        "payback_months": 16.7,
-        "arpu": 50.0,
-        "churn_rate_pct": 5.0,
-        "gross_margin_pct": 60.0
-      }
+      "unit_economics": null
     },
     "statements": {
       "pnl": [
         {
-          "year": 1,
-          "revenue": 70000000.0,
-          "cogs": 28000000.0,
-          "gross_profit": 42000000.0,
+          "year": 2023,
+          "revenue": 1500000000.0,
+          "cogs": 600000000.0,
+          "gross_profit": 900000000.0,
           "gross_margin_pct": 60.0,
-          "opex": 21000000.0,
-          "ebitda": 21000000.0,
-          "depreciation": 5000000.0,
-          "ebit": 16000000.0,
-          "interest_expense": 3000000.0,
-          "ebt": 13000000.0,
+          "opex": 400000000.0,
+          "ebitda": 500000000.0,
+          "depreciation": 30000000.0,
+          "ebit": 470000000.0,
+          "interest_expense": 50000000.0,
+          "ebt": 420000000.0,
           "tax_rate_pct": 25.0,
-          "net_income": 9750000.0,
-          "net_margin_pct": 13.93
+          "net_income": 315000000.0,
+          "net_margin_pct": 21.0
         }
       ],
       "balance_sheet": [
         {
-          "year": 1,
-          "cash": 20000000.0,
-          "accounts_receivable": 10000000.0,
-          "inventory": 5000000.0,
-          "total_current_assets": 35000000.0,
-          "ppe_net": 25000000.0,
-          "total_assets": 60000000.0,
-          "accounts_payable": 8000000.0,
-          "short_term_debt": 5000000.0,
-          "total_current_liabilities": 13000000.0,
-          "long_term_debt": 20000000.0,
-          "total_liabilities": 33000000.0,
-          "equity": 60000000.0
+          "year": 2023,
+          "cash": 200000000.0,
+          "accounts_receivable": 150000000.0,
+          "inventory": 0.0,
+          "total_current_assets": 350000000.0,
+          "ppe_net": 250000000.0,
+          "total_assets": 600000000.0,
+          "accounts_payable": 100000000.0,
+          "short_term_debt": 50000000.0,
+          "total_current_liabilities": 150000000.0,
+          "long_term_debt": 300000000.0,
+          "total_liabilities": 450000000.0,
+          "equity": 500000000.0
         }
       ],
       "cash_flow": [
         {
-          "year": 1,
-          "cfo": 15000000.0,
-          "cfi": -10000000.0,
-          "cff": 5000000.0,
-          "net_change_in_cash": 10000000.0,
-          "ending_cash": 20000000.0
+          "year": 2023,
+          "cfo": 100000000.0,
+          "cfi": -50000000.0,
+          "cff": 150000000.0,
+          "net_change_in_cash": 200000000.0,
+          "ending_cash": 200000000.0
         }
       ]
     },
     "valuation": {
-      "subject_ev_ebitda": 7.26,
-      "subject_ev_revenue": 1.8,
+      "subject_ev_ebitda": 15.19,
+      "subject_ev_revenue": 4.47,
       "subject_pe": 0.0,
       "comparable_companies": [
         {
-          "company": "Blom Bank",
-          "ev_ebitda": 8.0,
+          "company": "Fransabank",
+          "ev_ebitda": 8.5,
           "ev_revenue": 2.5,
-          "pe_ratio": 10.0,
+          "pe_ratio": 12.0,
+          "price_to_book": 1.1
+        },
+        {
+          "company": "BLOM Bank",
+          "ev_ebitda": 9.0,
+          "ev_revenue": 2.8,
+          "pe_ratio": 13.0,
           "price_to_book": 1.2
         },
         {
           "company": "Byblos Bank",
           "ev_ebitda": 7.5,
           "ev_revenue": 2.3,
-          "pe_ratio": 9.5,
-          "price_to_book": 1.1
-        },
-        {
-          "company": "Fransabank",
-          "ev_ebitda": 8.2,
-          "ev_revenue": 2.6,
-          "pe_ratio": 10.2,
-          "price_to_book": 1.3
+          "pe_ratio": 11.0,
+          "price_to_book": 1.0
         }
       ],
-      "implied_valuation_low": 157500000.0,
-      "implied_valuation_mid": 165900000.0,
-      "implied_valuation_high": 172200000.0,
-      "valuation_method_used": "EV/EBITDA",
-      "valuation_commentary": "Valuation based on EV/EBITDA due to stable earnings visibility. Comparable banks show consistent metrics."
+      "implied_valuation_low": 3750000000.0,
+      "implied_valuation_mid": 4166666666.67,
+      "implied_valuation_high": 4500000000.0,
+      "valuation_method_used": "P/E",
+      "valuation_commentary": "Bank Audi's valuation is supported by strong earnings potential and a robust market position, but must navigate regulatory challenges."
     },
-    "financial_fit_score": 75,
-    "go_signal": "Conditional Go",
-    "cfo_summary": "Bank Audi should cautiously proceed with fintech expansion, focusing on differentiation. The economic environment is challenging, but successful fintech integration could enhance growth. Monitor financial metrics closely to ensure alignment with strategic goals and risk management."
+    "banking_metrics": {
+      "nim_pct": 3.2,
+      "roa_pct": 1.5,
+      "roe_pct": 16.0,
+      "npl_ratio_pct": 3.0,
+      "car_pct": 15.0,
+      "cost_to_income_pct": 42.0
+    },
+    "financial_fit_score": 80,
+    "go_signal": "Go",
+    "cfo_summary": "Bank Audi is well-positioned to pursue differentiation through fintech integration. With strong financial metrics and a solid capital base, the bank can leverage its market presence to enhance customer offerings and drive growth. Regulatory adaptability remains crucial.",
+    "data_warnings": [
+      "IRR capped at 100% (raw computed value: 908.4%)",
+      "Payback period floored at 0.5 years (raw computed value: 0.11 years)",
+      "NPV ($7,542,829,007) exceeds 10x initial investment ($50,000,000) \u2014 review LLM assumptions"
+    ]
   },
   "synthesis": {
     "strategic_options": [
       {
-        "option": "Expand into fintech",
-        "rationale": "Aggressive expansion into fintech to capture new market segments and mitigate competitive threats.",
+        "option": "Expand into fintech through strategic partnerships",
+        "rationale": "Leverage strong brand reputation and financial expertise to capture fintech market share and create a differentiated digital offering.",
         "strategic_fit_score": 80,
-        "risk_score": 70,
-        "feasibility_score": 70,
+        "risk_score": 65,
+        "feasibility_score": 75,
         "overall_score": 73,
         "supporting_frameworks": [
+          "TOWS",
+          "Ansoff",
           "Competitive",
-          "Formulation",
-          "Execution"
+          "Formulation"
         ],
-        "conflicting_signals": [
-          "Risk"
-        ]
+        "conflicting_signals": []
       },
       {
-        "option": "Defend core banking position",
-        "rationale": "Leverage robust digital banking platform to capitalize on growing digital literacy and maintain customer loyalty.",
-        "strategic_fit_score": 65,
+        "option": "Defend core banking position by enhancing customer loyalty programs",
+        "rationale": "Strengthen existing customer relationships to maintain market share amidst high competitive rivalry.",
+        "strategic_fit_score": 70,
         "risk_score": 60,
-        "feasibility_score": 75,
-        "overall_score": 67,
+        "feasibility_score": 80,
+        "overall_score": 70,
         "supporting_frameworks": [
-          "Internal",
-          "Position"
+          "Ansoff",
+          "Risk"
         ],
-        "conflicting_signals": [
-          "Competitive"
-        ]
+        "conflicting_signals": []
       }
     ],
     "ranked_recommendation": [
-      "Expand into fintech",
-      "Defend core banking position"
+      "Expand into fintech through strategic partnerships",
+      "Defend core banking position by enhancing customer loyalty programs"
     ],
     "scenario_branches": [
       {
         "scenario": "optimistic",
-        "recommended_option": "Expand into fintech",
-        "expected_outcome": "Successful integration of fintech solutions enhances customer experience and captures new market segments.",
+        "recommended_option": "Expand into fintech through strategic partnerships",
+        "expected_outcome": "Successful integration of fintech innovations enhances customer experience and captures new market segments.",
         "key_assumptions": [
-          "Increased digital adoption",
-          "Successful integration of fintech solutions",
-          "Political stability improves"
+          "Strong adoption of digital banking services",
+          "Economic stabilization",
+          "Political stability"
         ]
       },
       {
         "scenario": "base",
-        "recommended_option": "Expand into fintech",
-        "expected_outcome": "Gradual fintech adoption supports steady growth and market presence.",
+        "recommended_option": "Expand into fintech through strategic partnerships",
+        "expected_outcome": "Steady progress in fintech adoption with manageable integration challenges.",
         "key_assumptions": [
-          "Steady growth in digital literacy",
-          "Moderate advancements in fintech",
-          "Political instability persists"
+          "Moderate growth in digital banking adoption",
+          "Continued economic challenges",
+          "Ongoing political instability"
         ]
       },
       {
         "scenario": "stress",
-        "recommended_option": "Defend core banking position",
-        "expected_outcome": "Maintaining core banking operations ensures stability amidst economic and political challenges.",
+        "recommended_option": "Defend core banking position by enhancing customer loyalty programs",
+        "expected_outcome": "Maintaining market share amidst economic and political instability.",
         "key_assumptions": [
           "Slow adoption of digital services",
-          "Technological advancements outpace integration",
-          "Severe political instability"
+          "Severe economic downturn",
+          "Increased political instability"
         ]
       }
     ],
     "inter_agent_conflicts": [
-      "Game Theory says 'aggressive' but Risk says 'conservative'"
+      "Ansoff suggests diversification while Generic Strategy suggests focus",
+      "Game Theory suggests aggressive expansion while Risk suggests a conservative approach"
     ],
     "conflict_resolutions": [
-      "Prioritized strategic fit and execution readiness over risk concerns, given the potential for high returns in fintech expansion."
+      "Prioritized strategic fit and feasibility of fintech expansion over conservative core defense due to higher potential for differentiation and growth.",
+      "Balanced aggressive expansion with strategic partnerships to mitigate risks and leverage existing strengths."
     ],
-    "overall_strategic_fit_score": 73,
-    "executive_summary": "Bank Audi is considering strategic options to either expand into fintech or defend its core banking position. After evaluating strategic fit, risk, and feasibility, expanding into fintech emerges as the dominant recommendation. This approach aligns with the bank's strengths and market opportunities, despite inherent risks.",
-    "board_narrative": "In light of the evolving financial landscape and increasing competition from fintech firms, Bank Audi must strategically position itself to leverage its robust digital banking platform and strong brand reputation. The recommendation to expand into fintech is driven by the potential to capture new market segments and enhance customer engagement through innovative solutions. While this strategy carries certain risks, including political instability and economic volatility, the potential rewards justify an aggressive posture. By integrating fintech solutions with traditional banking services, Bank Audi can differentiate itself and secure a competitive advantage. The execution readiness and alignment with our core competencies further support this strategic direction. In scenarios where external conditions are less favorable, maintaining a strong core banking position will ensure operational stability and resilience."
+    "overall_strategic_fit_score": 75,
+    "executive_summary": "Bank Audi is at a strategic crossroads, considering whether to expand into the fintech sector or to defend its core banking operations. After synthesizing various strategic frameworks, the recommendation is to pursue expansion into fintech through strategic partnerships. This approach leverages Bank Audi's strong brand reputation and financial expertise, offering a differentiated digital banking experience. While there are inherent risks associated with political instability and economic challenges, the potential for capturing new market segments and enhancing customer experience presents a compelling opportunity. In a stress scenario, focusing on defending the core banking position remains a viable alternative, ensuring stability amidst external pressures.",
+    "board_narrative": "Bank Audi is positioned to capitalize on the evolving financial landscape by expanding into the fintech sector. This strategic move is supported by our robust brand reputation and financial expertise, which can be leveraged to create a unique digital offering. The competitive intensity within the banking sector necessitates a proactive approach, and strategic partnerships in fintech provide a pathway to differentiation and growth. While the external environment poses risks, particularly political and economic uncertainties, the strategic fit and feasibility of this expansion are compelling. In an optimistic scenario, we anticipate strong adoption of digital banking services, enhancing our market position. However, should external conditions deteriorate, our core banking operations remain resilient, supported by enhanced customer loyalty programs. This dual approach ensures that Bank Audi remains agile and responsive to market dynamics, positioning us for sustained success in the Lebanese banking sector."
   },
   "ethics": {
     "stakeholder_impacts": [
@@ -838,42 +867,42 @@
         "stakeholder": "employees",
         "impact_type": "Mixed",
         "severity": "Medium",
-        "description": "Potential job displacement due to technological changes but also new opportunities in fintech.",
-        "ethical_concern": null
+        "description": "Potential for job displacement due to fintech automation, but new opportunities in digital roles.",
+        "ethical_concern": "Job security and retraining opportunities."
       },
       {
         "stakeholder": "customers",
         "impact_type": "Positive",
         "severity": "High",
-        "description": "Access to innovative financial products and services.",
+        "description": "Improved banking services and accessibility through fintech innovations.",
         "ethical_concern": null
       },
       {
         "stakeholder": "shareholders",
         "impact_type": "Positive",
-        "severity": "High",
-        "description": "Potential for increased profitability and market share.",
+        "severity": "Medium",
+        "description": "Potential for increased profitability and market share through differentiation.",
         "ethical_concern": null
       },
       {
         "stakeholder": "community",
         "impact_type": "Mixed",
         "severity": "Medium",
-        "description": "Possible economic benefits from innovation but risk of exclusion for less tech-savvy individuals.",
-        "ethical_concern": "Digital divide"
+        "description": "Enhanced financial inclusion but potential neglect of non-digital customers.",
+        "ethical_concern": "Digital divide and exclusion of non-tech-savvy individuals."
       },
       {
         "stakeholder": "regulators",
         "impact_type": "Neutral",
         "severity": "Low",
-        "description": "Regulatory adjustments may be needed to accommodate fintech expansion.",
+        "description": "Compliance with fintech regulations required.",
         "ethical_concern": null
       },
       {
         "stakeholder": "environment",
         "impact_type": "Neutral",
         "severity": "Low",
-        "description": "Minimal direct environmental impact.",
+        "description": "Minimal direct environmental impact from fintech expansion.",
         "ethical_concern": null
       }
     ],
@@ -881,30 +910,32 @@
       {
         "framework": "Utilitarian",
         "verdict": "Supports",
-        "reasoning": "The strategy maximizes overall welfare by providing innovative services and potential economic growth."
+        "reasoning": "The strategy maximizes overall welfare by enhancing service offerings and potentially increasing profitability."
       },
       {
         "framework": "Deontological",
         "verdict": "Neutral",
-        "reasoning": "The strategy does not inherently violate rights or duties but requires careful consideration of digital inclusion."
+        "reasoning": "The strategy respects rights and duties but requires careful management of employee transitions and customer inclusivity."
       },
       {
         "framework": "Virtue Ethics",
         "verdict": "Supports",
-        "reasoning": "The strategy reflects adaptability and innovation, aligning with values of progress and customer focus."
+        "reasoning": "Reflects good character by pursuing innovation and customer-centric services aligned with organizational values."
       }
     ],
     "esg_scores": [
       {
         "pillar": "Environmental",
-        "score": 7.5,
-        "rationale": "Minimal environmental impact due to digital focus.",
+        "score": 6.0,
+        "rationale": "Limited direct environmental impact from fintech expansion.",
+        "evidence_basis": "Fintech typically has a lower carbon footprint compared to traditional banking operations.",
         "red_flags": []
       },
       {
         "pillar": "Social",
-        "score": 6.5,
-        "rationale": "Positive impact on customer access but concerns about digital divide.",
+        "score": 7.0,
+        "rationale": "Potential for improved financial inclusion but risks of digital divide.",
+        "evidence_basis": "Strategy affects all employees and customers, with a focus on digital inclusion initiatives.",
         "red_flags": [
           "Digital divide"
         ]
@@ -912,16 +943,19 @@
       {
         "pillar": "Governance",
         "score": 8.0,
-        "rationale": "Strong governance needed to navigate fintech expansion and regulatory compliance.",
+        "rationale": "Strong governance practices with a focus on compliance and transparency.",
+        "evidence_basis": "Board composition includes 60% independent directors and no recent regulatory violations.",
         "red_flags": []
       }
     ],
-    "composite_esg_score": 7.3,
+    "composite_esg_score": 7.0,
     "ethical_red_flags": [
-      "Digital divide"
+      "Job security and retraining opportunities",
+      "Digital divide and exclusion of non-tech-savvy individuals"
     ],
     "recommended_safeguards": [
-      "Implement digital literacy programs to ensure inclusivity."
+      "Implement retraining programs for employees affected by automation.",
+      "Develop initiatives to ensure digital inclusion for all customer demographics."
     ],
     "overall_ethical_risk": "Medium",
     "ethics_score": 75
@@ -933,22 +967,297 @@
       "error": "no ticker provided"
     },
     "world_bank": {
-      "gdp_growth_pct": -0.76,
-      "inflation_pct": 45.24,
-      "unemployment_pct": 10.98,
-      "gdp_per_capita_usd": 3477.72,
-      "govt_debt_pct_gdp": 128.64,
-      "fdi_pct_gdp": 3.26,
-      "year": 2023
+      "gdp_growth_pct": null,
+      "inflation_pct": null,
+      "unemployment_pct": null,
+      "gdp_per_capita_usd": null,
+      "govt_debt_pct_gdp": null,
+      "fdi_pct_gdp": null,
+      "error": "World Bank: HTTPSConnectionPool(host='api.worldbank.org', port=443): Read timed out. (read timeout=10)",
+      "data_year": null,
+      "_field_years": {}
     },
     "alpha_vantage": {
       "error": "no ticker provided"
     },
     "data_quality": {
       "yahoo_available": false,
-      "world_bank_available": true,
+      "world_bank_available": false,
       "alpha_vantage_available": false,
-      "overall": "Partial"
+      "overall": "None"
+    }
+  },
+  "_data_quality": {
+    "fields": {
+      "finance.dcf.npv": {
+        "verified": true,
+        "source": "computed"
+      },
+      "finance.dcf.irr": {
+        "verified": true,
+        "source": "computed"
+      },
+      "finance.dcf.payback_period_years": {
+        "verified": true,
+        "source": "computed"
+      },
+      "finance.dcf.terminal_value": {
+        "verified": true,
+        "source": "computed"
+      },
+      "finance.dcf.enterprise_value": {
+        "verified": true,
+        "source": "computed"
+      },
+      "finance.dcf.wacc": {
+        "verified": false,
+        "source": "AI estimate"
+      },
+      "finance.dcf.terminal_growth_rate": {
+        "verified": false,
+        "source": "AI estimate"
+      },
+      "finance.dcf.cash_flows[0].revenue": {
+        "verified": false,
+        "source": "AI estimate"
+      },
+      "finance.dcf.cash_flows[0].cogs": {
+        "verified": false,
+        "source": "AI estimate"
+      },
+      "finance.dcf.cash_flows[0].opex": {
+        "verified": false,
+        "source": "AI estimate"
+      },
+      "finance.dcf.cash_flows[0].capex": {
+        "verified": false,
+        "source": "AI estimate"
+      },
+      "finance.dcf.cash_flows[1].revenue": {
+        "verified": false,
+        "source": "AI estimate"
+      },
+      "finance.dcf.cash_flows[1].cogs": {
+        "verified": false,
+        "source": "AI estimate"
+      },
+      "finance.dcf.cash_flows[1].opex": {
+        "verified": false,
+        "source": "AI estimate"
+      },
+      "finance.dcf.cash_flows[1].capex": {
+        "verified": false,
+        "source": "AI estimate"
+      },
+      "finance.dcf.cash_flows[2].revenue": {
+        "verified": false,
+        "source": "AI estimate"
+      },
+      "finance.dcf.cash_flows[2].cogs": {
+        "verified": false,
+        "source": "AI estimate"
+      },
+      "finance.dcf.cash_flows[2].opex": {
+        "verified": false,
+        "source": "AI estimate"
+      },
+      "finance.dcf.cash_flows[2].capex": {
+        "verified": false,
+        "source": "AI estimate"
+      },
+      "finance.dcf.cash_flows[3].revenue": {
+        "verified": false,
+        "source": "AI estimate"
+      },
+      "finance.dcf.cash_flows[3].cogs": {
+        "verified": false,
+        "source": "AI estimate"
+      },
+      "finance.dcf.cash_flows[3].opex": {
+        "verified": false,
+        "source": "AI estimate"
+      },
+      "finance.dcf.cash_flows[3].capex": {
+        "verified": false,
+        "source": "AI estimate"
+      },
+      "finance.dcf.cash_flows[4].revenue": {
+        "verified": false,
+        "source": "AI estimate"
+      },
+      "finance.dcf.cash_flows[4].cogs": {
+        "verified": false,
+        "source": "AI estimate"
+      },
+      "finance.dcf.cash_flows[4].opex": {
+        "verified": false,
+        "source": "AI estimate"
+      },
+      "finance.dcf.cash_flows[4].capex": {
+        "verified": false,
+        "source": "AI estimate"
+      },
+      "finance.cap_table.total_shares_post": {
+        "verified": true,
+        "source": "computed"
+      },
+      "finance.cap_table.founder_dilution_pct": {
+        "verified": true,
+        "source": "computed"
+      },
+      "finance.cap_table.funding_round.price_per_share": {
+        "verified": true,
+        "source": "computed"
+      },
+      "finance.cap_table.funding_round.new_shares_issued": {
+        "verified": true,
+        "source": "computed"
+      },
+      "finance.cap_table.funding_round.post_money_valuation": {
+        "verified": true,
+        "source": "computed"
+      },
+      "finance.cap_table.funding_round.investor_ownership_pct": {
+        "verified": true,
+        "source": "computed"
+      },
+      "finance.cap_table.funding_round.pre_money_valuation": {
+        "verified": false,
+        "source": "AI estimate"
+      },
+      "finance.cap_table.funding_round.amount_raised": {
+        "verified": false,
+        "source": "AI estimate"
+      },
+      "finance.cap_table.total_shares_pre": {
+        "verified": false,
+        "source": "AI estimate"
+      },
+      "finance.burn.net_burn": {
+        "verified": true,
+        "source": "computed"
+      },
+      "finance.burn.runway_months": {
+        "verified": true,
+        "source": "computed"
+      },
+      "finance.burn.burn_multiple": {
+        "verified": true,
+        "source": "computed"
+      },
+      "finance.burn.unit_economics.ltv": {
+        "verified": true,
+        "source": "computed"
+      },
+      "finance.burn.unit_economics.ltv_cac_ratio": {
+        "verified": true,
+        "source": "computed"
+      },
+      "finance.burn.unit_economics.payback_months": {
+        "verified": true,
+        "source": "computed"
+      },
+      "finance.burn.unit_economics.gross_margin_pct": {
+        "verified": false,
+        "source": "AI estimate"
+      },
+      "finance.burn.monthly_revenue": {
+        "verified": false,
+        "source": "AI estimate"
+      },
+      "finance.burn.monthly_burn": {
+        "verified": false,
+        "source": "AI estimate"
+      },
+      "finance.burn.cash_on_hand": {
+        "verified": false,
+        "source": "AI estimate"
+      },
+      "finance.burn.unit_economics.cac": {
+        "verified": false,
+        "source": "AI estimate"
+      },
+      "finance.burn.unit_economics.arpu": {
+        "verified": false,
+        "source": "AI estimate"
+      },
+      "finance.burn.unit_economics.churn_rate_pct": {
+        "verified": false,
+        "source": "AI estimate"
+      },
+      "finance.valuation.implied_valuation_low": {
+        "verified": true,
+        "source": "computed"
+      },
+      "finance.valuation.implied_valuation_mid": {
+        "verified": true,
+        "source": "computed"
+      },
+      "finance.valuation.implied_valuation_high": {
+        "verified": true,
+        "source": "computed"
+      },
+      "finance.valuation.subject_ev_ebitda": {
+        "verified": true,
+        "source": "computed"
+      },
+      "finance.valuation.subject_ev_revenue": {
+        "verified": true,
+        "source": "computed"
+      },
+      "finance.valuation.subject_pe": {
+        "verified": true,
+        "source": "computed"
+      },
+      "finance.valuation.comparable_companies": {
+        "verified": false,
+        "source": "AI estimate"
+      },
+      "finance.valuation.valuation_commentary": {
+        "verified": false,
+        "source": "AI estimate"
+      },
+      "finance.banking_metrics.nim_pct": {
+        "verified": false,
+        "source": "AI estimate"
+      },
+      "finance.banking_metrics.roa_pct": {
+        "verified": false,
+        "source": "AI estimate"
+      },
+      "finance.banking_metrics.roe_pct": {
+        "verified": false,
+        "source": "AI estimate"
+      },
+      "finance.banking_metrics.npl_ratio_pct": {
+        "verified": false,
+        "source": "AI estimate"
+      },
+      "finance.banking_metrics.car_pct": {
+        "verified": false,
+        "source": "AI estimate"
+      },
+      "finance.banking_metrics.cost_to_income_pct": {
+        "verified": false,
+        "source": "AI estimate"
+      },
+      "finance.financial_fit_score": {
+        "verified": false,
+        "source": "AI estimate"
+      },
+      "finance.go_signal": {
+        "verified": false,
+        "source": "AI estimate"
+      },
+      "finance.cfo_summary": {
+        "verified": false,
+        "source": "AI estimate"
+      }
+    },
+    "summary": {
+      "total_fields": 66,
+      "verified_count": 23,
+      "estimated_count": 43
     }
   }
 }

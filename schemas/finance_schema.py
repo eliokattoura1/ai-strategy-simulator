@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Literal
+from typing import Literal, Optional
 
 
 # ── 1. DCF / NPV / IRR ────────────────────────────────────────────────────────
@@ -76,6 +76,15 @@ class UnitEconomics(BaseModel):
     gross_margin_pct: float
 
 
+class BankingMetrics(BaseModel):
+    nim_pct: Optional[float] = None            # Net Interest Margin %
+    roa_pct: Optional[float] = None            # Return on Assets %
+    roe_pct: Optional[float] = None            # Return on Equity %
+    npl_ratio_pct: Optional[float] = None      # Non-Performing Loans %
+    car_pct: Optional[float] = None            # Capital Adequacy Ratio %
+    cost_to_income_pct: Optional[float] = None # Cost-to-Income ratio %
+
+
 class BurnAnalysis(BaseModel):
     monthly_burn: float                # USD
     monthly_revenue: float
@@ -84,7 +93,7 @@ class BurnAnalysis(BaseModel):
     runway_months: float               # computed
     break_even_month: int              # month number when net_burn = 0
     burn_multiple: float               # net_burn / net_new_arr — efficiency metric
-    unit_economics: UnitEconomics
+    unit_economics: Optional[UnitEconomics] = None
 
 
 # ── 4. Financial Statements (3-statement model) ───────────────────────────────
@@ -167,6 +176,8 @@ class FinanceAgentOutput(BaseModel):
     burn: BurnAnalysis
     statements: FinancialStatements
     valuation: ValuationMultiples
+    banking_metrics: Optional[BankingMetrics] = None
     financial_fit_score: int           # 0-100, used by synthesis layer
     go_signal: Literal["Go", "Conditional Go", "No Go"]
     cfo_summary: str                   # 80-word board narrative
+    data_warnings: list[str] = []      # sanity-bound violations flagged during computation

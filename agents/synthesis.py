@@ -20,6 +20,10 @@ Conflicts to watch for:
 
 Resolve conflicts by weighing strategic fit score, risk score, and execution readiness.
 
+If any agent section is marked as unavailable, explicitly note the missing analytical dimension
+in both executive_summary and board_narrative. Lower your confidence scores for affected areas
+and flag the gap so the board can commission follow-up analysis.
+
 Return ONLY a valid JSON object with EXACTLY these field names:
 {
   "strategic_options": [{"option": "string", "rationale": "string", "strategic_fit_score": 50, "risk_score": 50, "feasibility_score": 50, "overall_score": 50, "supporting_frameworks": ["string"], "conflicting_signals": ["string"]}],
@@ -36,49 +40,84 @@ All score fields are integers 0-100.
 No markdown, no explanation, no extra fields. Return raw JSON only."""
 
 async def run_synthesis(state: SimulatorState) -> SynthesisOutput:
+    _NA = "[agent failed — data unavailable]"
+
+    ext_section = (
+        f"- Attractiveness Score: {state.external.overall_attractiveness_score}\n"
+        f"- Opportunities: {state.external.key_external_opportunities}\n"
+        f"- Threats: {state.external.key_external_threats}\n"
+        f"- Industry Stage: {state.external.industry_lifecycle.stage}"
+    ) if state.external else f"⚠️  {_NA}"
+
+    int_section = (
+        f"- Strength Score: {state.internal.internal_strength_score}\n"
+        f"- Core Competencies: {state.internal.core_competencies}\n"
+        f"- Key Strengths: {state.internal.key_strengths}\n"
+        f"- Key Weaknesses: {state.internal.key_weaknesses}"
+    ) if state.internal else f"⚠️  {_NA}"
+
+    pos_section = (
+        f"- Strategic Position Score: {state.position.strategic_position_score}\n"
+        f"- TOWS Strategies: {[t.model_dump() for t in state.position.tows_strategies]}\n"
+        f"- Ansoff Options: {[a.model_dump() for a in state.position.ansoff_options]}"
+    ) if state.position else f"⚠️  {_NA}"
+
+    comp_section = (
+        f"- Recommended Posture: {state.competitive.recommended_competitive_posture}\n"
+        f"- Competitive Intensity Score: {state.competitive.competitive_intensity_score}\n"
+        f"- Blue Ocean Opportunity: {state.competitive.blue_ocean_opportunity}"
+    ) if state.competitive else f"⚠️  {_NA}"
+
+    form_section = (
+        f"- Recommended Strategy: {state.formulation.recommended_strategy}\n"
+        f"- Formulation Confidence Score: {state.formulation.formulation_confidence_score}\n"
+        f"- Strategy Clock Positions: {[s.model_dump() for s in state.formulation.strategy_clock_positions]}"
+    ) if state.formulation else f"⚠️  {_NA}"
+
+    risk_section = (
+        f"- Risk Score: {state.risk.risk_score}\n"
+        f"- Top Risks: {state.risk.top_risks}\n"
+        f"- Scenarios: {[s.model_dump() for s in state.risk.steep_scenarios]}"
+    ) if state.risk else f"⚠️  {_NA}"
+
+    exec_section = (
+        f"- Execution Readiness Score: {state.execution.execution_readiness_score}\n"
+        f"- Critical Success Factors: {state.execution.critical_success_factors}\n"
+        f"- OKRs: {[o.model_dump() for o in state.execution.okrs]}"
+    ) if state.execution else f"⚠️  {_NA}"
+
+    failed_notice = (
+        f"\n⚠️  FAILED AGENTS — analysis missing for: {', '.join(state.failed_agents)}\n"
+        "Caveat your synthesis and board narrative to flag these analytical gaps.\n"
+    ) if state.failed_agents else ""
+
     prompt = f"""
 Company: {state.company}
 Industry: {state.industry}
 Strategic Question: {state.strategic_question}
-
+{failed_notice}
 === AGENT OUTPUTS SUMMARY ===
 
 EXTERNAL:
-- Attractiveness Score: {state.external.overall_attractiveness_score}
-- Opportunities: {state.external.key_external_opportunities}
-- Threats: {state.external.key_external_threats}
-- Industry Stage: {state.external.industry_lifecycle.stage}
+{ext_section}
 
 INTERNAL:
-- Strength Score: {state.internal.internal_strength_score}
-- Core Competencies: {state.internal.core_competencies}
-- Key Strengths: {state.internal.key_strengths}
-- Key Weaknesses: {state.internal.key_weaknesses}
+{int_section}
 
 POSITION:
-- Strategic Position Score: {state.position.strategic_position_score}
-- TOWS Strategies: {[t.model_dump() for t in state.position.tows_strategies]}
-- Ansoff Options: {[a.model_dump() for a in state.position.ansoff_options]}
+{pos_section}
 
 COMPETITIVE:
-- Recommended Posture: {state.competitive.recommended_competitive_posture}
-- Competitive Intensity Score: {state.competitive.competitive_intensity_score}
-- Blue Ocean Opportunity: {state.competitive.blue_ocean_opportunity}
+{comp_section}
 
 FORMULATION:
-- Recommended Strategy: {state.formulation.recommended_strategy}
-- Formulation Confidence Score: {state.formulation.formulation_confidence_score}
-- Strategy Clock Positions: {[s.model_dump() for s in state.formulation.strategy_clock_positions]}
+{form_section}
 
 RISK:
-- Risk Score: {state.risk.risk_score}
-- Top Risks: {state.risk.top_risks}
-- Scenarios: {[s.model_dump() for s in state.risk.steep_scenarios]}
+{risk_section}
 
 EXECUTION:
-- Execution Readiness Score: {state.execution.execution_readiness_score}
-- Critical Success Factors: {state.execution.critical_success_factors}
-- OKRs: {[o.model_dump() for o in state.execution.okrs]}
+{exec_section}
 
 Synthesize all inputs. Resolve conflicts. Rank strategic options. Write board narrative.
 Return structured JSON only.

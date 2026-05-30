@@ -660,47 +660,63 @@ def build_cover(data, styles):
 
 
 def build_toc(data, styles):
-    """Table of contents with dot leaders and a highlighted Financial row."""
+    """Table of contents with dot leaders, descriptions, and right-aligned page numbers."""
     aw = PAGE_W - 2 * MARGIN
     story = [SectionHeader("Table of Contents"), Spacer(1, 0.5 * cm)]
 
     entries = [
-        ("Executive Summary",         "Overall strategic fit & key tensions"),
-        ("External Environment",      "PESTEL · Porter's Five Forces · lifecycle"),
-        ("Internal Audit",            "VRIO resources & McKinsey 7S"),
-        ("Strategic Position",        "SWOT · TOWS · Ansoff growth matrix"),
-        ("Competitive Dynamics",      "Game theory & Blue Ocean ERRC"),
-        ("Strategy Formulation",      "Generic strategy & Strategy Clock"),
-        ("Risk & Scenarios",          "STEEP scenarios & top strategic risks"),
-        ("Execution Roadmap",         "Balanced Scorecard & OKRs"),
-        ("Financial Viability",       "DCF · unit economics · valuation · go signal"),
-        ("Strategic Options Ranking", "Weighted scoring of strategic options"),
-        ("Board Narrative",           "Recommendation & scenario branches"),
-        ("Appendix",                  "Aggregate scores summary"),
+        ("Executive Summary",         "Overall strategic fit & key tensions",           3),
+        ("External Environment",      "PESTEL · Porter's · Lifecycle · Market Data",   4),
+        ("Internal Audit",            "VRIO resources & McKinsey 7S",                   6),
+        ("Strategic Position",        "SWOT · TOWS · Ansoff growth matrix",             7),
+        ("Competitive Dynamics",      "Game theory & Blue Ocean ERRC",                  8),
+        ("Strategy Formulation",      "Generic strategy & Strategy Clock",              9),
+        ("Risk & Scenarios",          "STEEP scenarios & top strategic risks",         10),
+        ("Ethics & ESG",              "Stakeholder impact · ESG scoring",              11),
+        ("Execution Roadmap",         "Balanced Scorecard & OKRs",                    12),
+        ("Financial Viability",       "DCF · unit economics · valuation · go signal",  13),
+        ("Strategic Options Ranking", "Weighted scoring of strategic options",         16),
+        ("Board Narrative",           "Recommendation & scenario branches",            17),
+        ("Appendix",                  "Aggregate scores summary",                      18),
     ]
+
+    pg_style = ParagraphStyle(
+        "toc_pg", fontName="Helvetica-Bold", fontSize=11,
+        textColor=GOLD, alignment=TA_RIGHT, leading=16,
+    )
+    pg_style_hl = ParagraphStyle(
+        "toc_pg_hl", fontName="Helvetica-Bold", fontSize=11,
+        textColor=WHITE, alignment=TA_RIGHT, leading=16,
+    )
 
     rows = []
     hl_idx = None
-    for i, (name, desc) in enumerate(entries):
+    for i, (name, desc, pg) in enumerate(entries):
         if name == "Financial Viability":
             hl_idx = i
-            rows.append([Paragraph(name, styles["toc_name_hl"]),
-                         Paragraph(desc, styles["toc_desc_hl"])])
+            rows.append([
+                Paragraph(name, styles["toc_name_hl"]),
+                Paragraph(desc, styles["toc_desc_hl"]),
+                Paragraph(str(pg), pg_style_hl),
+            ])
         else:
-            rows.append([Paragraph(name, styles["toc_name"]),
-                         Paragraph(desc, styles["toc_desc"])])
+            rows.append([
+                Paragraph(name, styles["toc_name"]),
+                Paragraph(desc, styles["toc_desc"]),
+                Paragraph(str(pg), pg_style),
+            ])
 
-    t = Table(rows, colWidths=[aw * 0.42, aw * 0.58])
+    t = Table(rows, colWidths=[aw * 0.38, aw * 0.50, aw * 0.12])
     style_cmds = [
         ("ROWBACKGROUNDS", (0, 0), (-1, -1), [WHITE, LGRAY]),
-        ("VALIGN",       (0, 0), (-1, -1), "MIDDLE"),
-        ("TOPPADDING",   (0, 0), (-1, -1), 7),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
-        ("LEFTPADDING",  (0, 0), (-1, -1), 10),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-        ("BOX",          (0, 0), (-1, -1), 0.75, MGRAY),
+        ("VALIGN",         (0, 0), (-1, -1), "MIDDLE"),
+        ("TOPPADDING",     (0, 0), (-1, -1), 7),
+        ("BOTTOMPADDING",  (0, 0), (-1, -1), 7),
+        ("LEFTPADDING",    (0, 0), (-1, -1), 10),
+        ("RIGHTPADDING",   (0, 0), (-1, -1), 10),
+        ("BOX",            (0, 0), (-1, -1), 0.75, MGRAY),
     ]
-    # Gold dotted leaders under every row
+    # Gold dotted leaders spanning the full row width (name → description → page number)
     for i in range(len(rows)):
         style_cmds.append(("LINEBELOW", (0, i), (-1, i), 0.5, GOLD, None, (1, 2)))
     # Highlight Financial Viability row
@@ -721,11 +737,17 @@ def build_executive_summary(data, styles, charts_dir=None):
     story = [SectionHeader("Executive Summary", score=score), Spacer(1, 0.3 * cm)]
 
     # Large badge (left) + radar chart (right)
+    # Badge column narrowed to 130 pt so radar gets the remaining ~340 pt of column width.
+    # rowHeights=240 guarantees the chart has enough vertical room to be legible.
+    BADGE_COL = 130
+    RADAR_ROW_H = 240
     badge = ScoreBadge(score, "Overall Strategic Fit", size=120)
-    radar_img = _chart_image(charts_dir, "agent_scores_radar.png", max_w=250)
+    radar_img = _chart_image(charts_dir, "agent_scores_radar.png",
+                             max_w=aw - BADGE_COL)
     top = Table(
-        [[badge, radar_img or Spacer(1, 1)]],
-        colWidths=[150, aw - 150],
+        [[badge, radar_img or Spacer(1, RADAR_ROW_H)]],
+        colWidths=[BADGE_COL, aw - BADGE_COL],
+        rowHeights=[RADAR_ROW_H],
     )
     top.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
@@ -815,7 +837,7 @@ def build_external(data, styles, charts_dir=None):
     story.append(t)
     story.append(Spacer(1, 0.5 * cm))
 
-    # Porter's 5 Forces — kept together to prevent mid-section page break
+    # Porter's 5 Forces
     forces = ext.get("porter_forces", [])
     bar_data = [(f["force"], f["score"]) for f in forces]
     rows2 = [["Force", "Intensity", "Score", "Rationale"]]
@@ -841,17 +863,29 @@ def build_external(data, styles, charts_dir=None):
         story.append(Spacer(1, 0.3 * cm))
         story.append(porter_img)
 
-    # Industry lifecycle
+    # Industry Lifecycle — plain flowable so it flows with the content that follows
+    # (market data), ensuring it is never orphaned on a mostly-empty page.
     lc = ext.get("industry_lifecycle", {})
     story.append(Spacer(1, 0.3 * cm))
-    story.append(Paragraph(
-        f"<b>Industry Lifecycle Stage:</b> {lc.get('stage','').upper()} — {lc.get('strategic_implication','')}",
-        styles["body"]))
+    story.append(KeepTogether([
+        Paragraph("Industry Lifecycle", styles["subsection"]),
+        Paragraph(
+            f"<b>{lc.get('stage', '').upper()}</b> — {lc.get('strategic_implication', '')}",
+            styles["body"]),
+    ]))
+
+    # Market Data — merged as subsection after PESTEL / Porter's / Lifecycle
+    md_content = _build_market_data_content(data, styles)
+    if md_content:
+        story.append(Spacer(1, 0.4 * cm))
+        story.extend(md_content)
+
     story.append(PageBreak())
     return story
 
 
-def build_market_data_page(data, styles):
+def _build_market_data_content(data, styles):
+    """Market data flowables — no SectionHeader or PageBreak; embedded as subsection."""
     md = data.get("market_data")
     if not md:
         return []
@@ -860,13 +894,14 @@ def build_market_data_page(data, styles):
         return []
 
     aw = PAGE_W - 2 * MARGIN
-    story = [SectionHeader("MARKET DATA & MACRO INDICATORS"), Spacer(1, 0.25 * cm)]
-
-    story.append(Paragraph(
-        f"Source: Yahoo Finance · Alpha Vantage · World Bank  |  Data Quality: {quality}",
-        styles["small"],
-    ))
-    story.append(Spacer(1, 0.3 * cm))
+    story = [
+        Paragraph("Market Data & Macro Indicators", styles["subsection"]),
+        Paragraph(
+            f"Source: Yahoo Finance · Alpha Vantage · World Bank  |  Data Quality: {quality}",
+            styles["small"],
+        ),
+        Spacer(1, 0.25 * cm),
+    ]
 
     def _num(v, mult=1):
         try:
@@ -977,7 +1012,7 @@ def build_market_data_page(data, styles):
     # ── Macro Environment strip ───────────────────────────────────────────────
     if wb_ok:
         country_code = md.get("country_code", "")
-        wb_year      = wb.get("year", 2023)
+        wb_year      = wb.get("data_year", "N/A")
         story.append(Paragraph(
             f"Macro Environment (World Bank — {country_code} {wb_year})",
             styles["subsection"],
@@ -1050,7 +1085,6 @@ def build_market_data_page(data, styles):
         "Figures represent most recently available data. All financial figures in USD.</i>",
         styles["small"],
     ))
-    story.append(PageBreak())
     return story
 
 
@@ -1561,29 +1595,62 @@ def build_financial_viability(data, styles, charts_dir=None):
         story.append(fcf_img)
         story.append(Spacer(1, 0.2 * cm))
 
-    # ── Row 2: Unit Economics ─────────────────────────────────────────────────
-    burn    = fin.get("burn", {})
-    ue      = burn.get("unit_economics", {})
-    ltv_cac = float(ue.get("ltv_cac_ratio", 0) or 0)
-    runway  = burn.get("runway_months", 0)
-    ltv_cac_color = GREEN if ltv_cac >= 3.0 else AMBER if ltv_cac >= 1.5 else RED
-    runway_color  = GREEN if float(runway or 0) >= 18 else AMBER if float(runway or 0) >= 9 else RED
-    story.append(KeepTogether([
-        Paragraph("Unit Economics", styles["subsection"]),
-        kpi_strip(
-            ["LTV", "CAC", "LTV / CAC Ratio", "Gross Margin %", "Runway (months)"],
-            [
-                fmt_m(ue.get("ltv", 0)),
-                f"${ue.get('cac', 0):,.0f}",
-                f"{ltv_cac:.1f}x",
-                f"{ue.get('gross_margin_pct', 0):.1f}%",
-                f"{runway:.0f}",
-            ],
-            value_colors=[NAVY, RED, ltv_cac_color, GREEN, runway_color],
-            arrows=[None, None, "up" if ltv_cac >= 3.0 else "down", None,
-                    "up" if float(runway or 0) >= 18 else "down"],
-        ),
-    ]))
+    # ── Row 2: Unit Economics or Banking Metrics ──────────────────────────────
+    burn = fin.get("burn", {})
+    bm   = fin.get("banking_metrics")
+    if bm:
+        nim = float(bm.get("nim_pct", 0) or 0)
+        roa = float(bm.get("roa_pct", 0) or 0)
+        roe = float(bm.get("roe_pct", 0) or 0)
+        npl = float(bm.get("npl_ratio_pct", 0) or 0)
+        car = float(bm.get("car_pct", 0) or 0)
+        cti = float(bm.get("cost_to_income_pct", 0) or 0)
+        story.append(KeepTogether([
+            Paragraph("Banking Metrics", styles["subsection"]),
+            kpi_strip(
+                ["NIM %", "ROA %", "ROE %", "NPL Ratio %", "CAR %", "Cost / Income %"],
+                [f"{nim:.2f}%", f"{roa:.2f}%", f"{roe:.1f}%",
+                 f"{npl:.1f}%", f"{car:.1f}%", f"{cti:.1f}%"],
+                value_colors=[
+                    GREEN if nim >= 3.0 else AMBER if nim >= 2.0 else RED,
+                    GREEN if roa >= 1.0 else AMBER if roa >= 0.5 else RED,
+                    GREEN if roe >= 12.0 else AMBER if roe >= 8.0 else RED,
+                    GREEN if npl <= 2.0 else AMBER if npl <= 5.0 else RED,
+                    GREEN if car >= 12.0 else AMBER if car >= 8.0 else RED,
+                    GREEN if cti <= 50.0 else AMBER if cti <= 65.0 else RED,
+                ],
+                arrows=[
+                    "up" if nim >= 3.0 else "down",
+                    "up" if roa >= 1.0 else "down",
+                    "up" if roe >= 12.0 else "down",
+                    "up" if npl <= 2.0 else "down",   # lower NPL is better
+                    "up" if car >= 12.0 else "down",
+                    "up" if cti <= 50.0 else "down",  # lower cost/income is better
+                ],
+            ),
+        ]))
+    else:
+        ue      = burn.get("unit_economics", {})
+        ltv_cac = float(ue.get("ltv_cac_ratio", 0) or 0)
+        runway  = burn.get("runway_months", 0)
+        ltv_cac_color = GREEN if ltv_cac >= 3.0 else AMBER if ltv_cac >= 1.5 else RED
+        runway_color  = GREEN if float(runway or 0) >= 18 else AMBER if float(runway or 0) >= 9 else RED
+        story.append(KeepTogether([
+            Paragraph("Unit Economics", styles["subsection"]),
+            kpi_strip(
+                ["LTV", "CAC", "LTV / CAC Ratio", "Gross Margin %", "Runway (months)"],
+                [
+                    fmt_m(ue.get("ltv", 0)),
+                    f"${ue.get('cac', 0):,.0f}",
+                    f"{ltv_cac:.1f}x",
+                    f"{ue.get('gross_margin_pct', 0):.1f}%",
+                    f"{runway:.0f}",
+                ],
+                value_colors=[NAVY, RED, ltv_cac_color, GREEN, runway_color],
+                arrows=[None, None, "up" if ltv_cac >= 3.0 else "down", None,
+                        "up" if float(runway or 0) >= 18 else "down"],
+            ),
+        ]))
     story.append(Spacer(1, 0.35 * cm))
 
     # ── Row 3: Cap Table & Funding Round ──────────────────────────────────────
@@ -1712,6 +1779,24 @@ def build_financial_viability(data, styles, charts_dir=None):
     if wf_img:
         story.append(Spacer(1, 0.2 * cm))
         story.append(wf_img)
+
+    # ── Data Provenance Footnote ──────────────────────────────────────────────
+    dq = data.get("_data_quality", {}).get("summary", {})
+    if dq:
+        v  = dq.get("verified_count", 0)
+        e  = dq.get("estimated_count", 0)
+        n  = dq.get("total_fields", 0)
+        story.append(HRFlowable(width="100%", thickness=0.5, color=MGRAY,
+                                spaceBefore=8, spaceAfter=3))
+        story.append(Paragraph(
+            f"<b>Data provenance ({n} key figures):</b> "
+            f'<font color="#1A7A4A"><b>{v} verified</b></font> '
+            f"(market data feeds or deterministic computation) · "
+            f'<font color="#B22222"><b>{e} AI estimates</b></font> '
+            f"(LLM assumptions — no external data backing)",
+            styles["small"],
+        ))
+
     story.append(PageBreak())
     return story
 
@@ -1849,47 +1934,46 @@ def build_ethics_page(data, styles):
     story.append(t_fw)
     story.append(Spacer(1, 0.4 * cm))
 
-    # ── Ethical Red Flags — bulleted list with red left border ────────────────
-    red_flags = ethics.get("ethical_red_flags", [])
-    if red_flags:
-        story.append(Paragraph("Ethical Red Flags", styles["subsection"]))
-        for flag in red_flags:
-            rf_tbl = Table(
-                [[Paragraph(f"• {flag}", styles["table_cell"])]],
-                colWidths=[aw],
-            )
-            rf_tbl.setStyle(TableStyle([
-                ("LINEBEFORE",    (0, 0), (0, -1), 3, RED),
-                ("LEFTPADDING",   (0, 0), (-1, -1), 10),
-                ("RIGHTPADDING",  (0, 0), (-1, -1), 6),
-                ("TOPPADDING",    (0, 0), (-1, -1), 4),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-                ("ROWBACKGROUNDS",(0, 0), (-1, -1), [colors.HexColor("#FEF0F0")]),
-            ]))
-            story.append(rf_tbl)
-            story.append(Spacer(1, 0.1 * cm))
-        story.append(Spacer(1, 0.2 * cm))
-
-    # ── Recommended Safeguards — bulleted list with green left border ─────────
+    # ── Ethical Red Flags & Recommended Safeguards — side-by-side ─────────────
+    red_flags  = ethics.get("ethical_red_flags", [])
     safeguards = ethics.get("recommended_safeguards", [])
-    if safeguards:
-        story.append(Paragraph("Recommended Safeguards", styles["subsection"]))
-        for sg in safeguards:
-            sg_tbl = Table(
-                [[Paragraph(f"• {sg}", styles["table_cell"])]],
-                colWidths=[aw],
+
+    def _bulleted_items(items, accent_color, bg_color, col_w):
+        result = []
+        for item in items:
+            row_tbl = Table(
+                [[Paragraph(f"• {item}", styles["table_cell"])]],
+                colWidths=[col_w],
             )
-            sg_tbl.setStyle(TableStyle([
-                ("LINEBEFORE",    (0, 0), (0, -1), 3, GREEN),
+            row_tbl.setStyle(TableStyle([
+                ("LINEBEFORE",    (0, 0), (0, -1), 3, accent_color),
                 ("LEFTPADDING",   (0, 0), (-1, -1), 10),
                 ("RIGHTPADDING",  (0, 0), (-1, -1), 6),
                 ("TOPPADDING",    (0, 0), (-1, -1), 4),
                 ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-                ("ROWBACKGROUNDS",(0, 0), (-1, -1), [colors.HexColor("#E8F4EC")]),
+                ("ROWBACKGROUNDS",(0, 0), (-1, -1), [bg_color]),
             ]))
-            story.append(sg_tbl)
-            story.append(Spacer(1, 0.1 * cm))
+            result.append(row_tbl)
+            result.append(Spacer(1, 0.1 * cm))
+        return result or [Paragraph("None identified.", styles["small"])]
 
+    col_w = aw / 2 - 0.4 * cm
+    rf_col = [Paragraph("Ethical Red Flags",      styles["subsection"])] + \
+             _bulleted_items(red_flags,  RED,   colors.HexColor("#FEF0F0"), col_w)
+    sg_col = [Paragraph("Recommended Safeguards", styles["subsection"])] + \
+             _bulleted_items(safeguards, GREEN, colors.HexColor("#E8F4EC"), col_w)
+
+    two_col = Table([[rf_col, sg_col]], colWidths=[aw / 2, aw / 2])
+    two_col.setStyle(TableStyle([
+        ("VALIGN",        (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING",   (0, 0), (0, 0),   0),
+        ("RIGHTPADDING",  (0, 0), (0, 0),   8),
+        ("LEFTPADDING",   (1, 0), (1, 0),   8),
+        ("RIGHTPADDING",  (1, 0), (1, 0),   0),
+        ("TOPPADDING",    (0, 0), (-1, -1), 0),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+    ]))
+    story.append(two_col)
     story.append(PageBreak())
     return story
 
@@ -2147,11 +2231,8 @@ def generate_report(json_path: str, output_path: str) -> None:
     # 3. Executive Summary
     story += build_executive_summary(data, styles, charts_dir)
 
-    # 4. External Environment
+    # 4. External Environment (PESTEL · Porter's · Lifecycle · Market Data)
     story += build_external(data, styles, charts_dir)
-
-    # 4b. Market Data & Macro Indicators
-    story += build_market_data_page(data, styles)
 
     # 5. Internal Audit
     story += build_internal(data, styles)

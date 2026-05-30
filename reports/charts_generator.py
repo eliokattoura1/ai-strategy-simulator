@@ -52,7 +52,7 @@ def _save(fig: go.Figure, path: str) -> None:
 
 def _porter_bar(data: dict, out: str) -> None:
     forces = data["external"]["porter_forces"]
-    labels = [f["force"] for f in forces]
+    labels = [(f["force"][:28] + "…") if len(f["force"]) > 28 else f["force"] for f in forces]
     scores = [f["score"] for f in forces]
     intensities = [f["intensity"].capitalize() for f in forces]
 
@@ -104,6 +104,7 @@ def _porter_bar(data: dict, out: str) -> None:
         height=H,
         width=W,
     )
+    fig.update_layout(margin=dict(l=160))
     _save(fig, out)
 
 
@@ -129,6 +130,7 @@ def _radar(data: dict, out: str) -> None:
         "Execution\nReadiness",
         "Overall\nFit",
     ]
+    categories = [(c[:28] + "…") if len(c) > 28 else c for c in categories]
     values = [
         float(ext.get("overall_attractiveness_score", 0)),
         float(intn.get("internal_strength_score", 0)),
@@ -192,6 +194,7 @@ def _radar(data: dict, out: str) -> None:
         height=H,
         width=W,
     )
+    fig.update_layout(margin=dict(l=160))
     _save(fig, out)
 
 

@@ -1,4 +1,5 @@
 import asyncio
+from dataclasses import dataclass, field
 from schemas.external_schema import ExternalAgentOutput
 from schemas.internal_schema import InternalAgentOutput
 from schemas.position_schema import PositionAgentOutput
@@ -17,7 +18,6 @@ from schemas.finance_schema import FinanceAgentOutput
 from agents.finance_agent import run_finance_agent
 from schemas.ethics_schema import EthicsAgentOutput
 from agents.ethics_agent import run_ethics_agent
-from dataclasses import dataclass
 
 @dataclass
 class SimulatorState:
@@ -34,6 +34,8 @@ class SimulatorState:
     execution: ExecutionAgentOutput = None
     finance: FinanceAgentOutput = None
     market_data: dict = None
+    failed_agents: list = field(default_factory=list)
+
 
 def _build_rag_fetcher(company_name: str):
     """Return a context-fetching function if RAG is available, else a no-op."""
@@ -46,6 +48,21 @@ def _build_rag_fetcher(company_name: str):
         return lambda query: None
 
 
+async def _run_with_retry(name: str, coro_factory, failed_agents: list):
+    """Call coro_factory(); retry once after 3 s on failure; return None and record name on second failure."""
+    for attempt in range(2):
+        try:
+            return await coro_factory()
+        except Exception as exc:
+            if attempt == 0:
+                print(f"⚠️  [{name}] failed (attempt 1): {exc} — retrying in 3s...")
+                await asyncio.sleep(3)
+            else:
+                print(f"❌ [{name}] failed after retry: {exc} — continuing without it.")
+                failed_agents.append(name)
+                return None
+
+
 async def run_orchestrator(
     company: str,
     industry: str,
@@ -53,7 +70,11 @@ async def run_orchestrator(
     company_name: str = None,
     ticker: str = None,
     country_code: str = None,
+    on_step=None,
 ) -> SimulatorState:
+    def _step(key: str, state: str):
+        if on_step:
+            on_step(key, state)
     state = SimulatorState(
         company=company,
         industry=industry,
@@ -61,6 +82,7 @@ async def run_orchestrator(
     )
 
     market_data_str = ""
+    _step("market_data", "running")
     if ticker or country_code:
         try:
             from data_layer.market_data import get_all_market_data, format_for_agent_prompt
@@ -72,79 +94,91 @@ async def run_orchestrator(
             print(f"📡 Market data quality: {quality}")
         except Exception as e:
             print(f"📡 Market data fetch failed: {e}")
+    _step("market_data", "done")
 
     fetch = _build_rag_fetcher(company_name) if company_name else (lambda q: None)
 
     print("🔍 Running External + Internal agents in parallel...")
+    _step("ext_int", "running")
     state.external, state.internal = await asyncio.gather(
-        run_external_agent(
+        _run_with_retry("external", lambda: run_external_agent(
             company, industry, strategic_question,
             context=fetch("external environment PESTEL market trends competition regulatory political economic"),
             market_data=market_data_str,
-        ),
-        run_internal_agent(
+        ), state.failed_agents),
+        _run_with_retry("internal", lambda: run_internal_agent(
             company, industry, strategic_question,
             context=fetch("internal capabilities resources operations technology staff financial performance"),
-        ),
+        ), state.failed_agents),
     )
+    _step("ext_int", "done")
 
     print("📍 Running Position agent...")
-    state.position = await run_position_agent(
+    _step("position", "running")
+    state.position = await _run_with_retry("position", lambda: run_position_agent(
         company, industry, strategic_question,
         state.external, state.internal,
         context=fetch("strategic position market share growth competitive advantages SWOT"),
-    )
+    ), state.failed_agents)
+    _step("position", "done")
 
     print("⚔️ Running Competitive agent...")
-    state.competitive = await run_competitive_agent(
+    _step("competitive", "running")
+    state.competitive = await _run_with_retry("competitive", lambda: run_competitive_agent(
         company, industry, strategic_question,
         state.external, state.position,
         context=fetch("competitors competitive strategy market dynamics pricing rivalry"),
-    )
+    ), state.failed_agents)
+    _step("competitive", "done")
 
     print("🎯 Running Formulation agent...")
-    state.formulation = await run_formulation_agent(
+    _step("formulation", "running")
+    state.formulation = await _run_with_retry("formulation", lambda: run_formulation_agent(
         company, industry, strategic_question,
         state.internal, state.position, state.competitive,
         context=fetch("strategy direction value proposition differentiation cost structure"),
-    )
+    ), state.failed_agents)
+    _step("formulation", "done")
 
     print("⚠️ Running Risk agent...")
-    state.risk = await run_risk_agent(
+    _step("risk", "running")
+    state.risk = await _run_with_retry("risk", lambda: run_risk_agent(
         company, industry, strategic_question,
         state.external, state.formulation,
         context=fetch("risks challenges threats uncertainties regulatory compliance"),
-    )
+    ), state.failed_agents)
+    _step("risk", "done")
 
     print("⚖️  Running Ethics agent...")
-    state.ethics = await run_ethics_agent(
+    _step("ethics", "running")
+    state.ethics = await _run_with_retry("ethics", lambda: run_ethics_agent(
         company, industry, strategic_question,
         state.risk, state.formulation,
         context=fetch("ethics ESG stakeholder impact governance social responsibility"),
-    )
+    ), state.failed_agents)
+    _step("ethics", "done")
 
     print("🚀 Running Execution agent...")
-    state.execution = await run_execution_agent(
+    _step("execution", "running")
+    state.execution = await _run_with_retry("execution", lambda: run_execution_agent(
         company, industry, strategic_question,
         state.formulation, state.risk,
         context=fetch("implementation operations milestones KPIs execution roadmap initiatives"),
-    )
-
-    # Re-run execution with actual risk output
-    print("🔄 Re-running Execution agent with risk data...")
-    state.execution = await run_execution_agent(
-        company, industry, strategic_question,
-        state.formulation, state.risk,
-        context=fetch("implementation operations milestones KPIs execution roadmap initiatives"),
-    )
+    ), state.failed_agents)
+    _step("execution", "done")
 
     print("💰 Running Finance agent...")
-    state.finance = await run_finance_agent(
+    _step("finance", "running")
+    state.finance = await _run_with_retry("finance", lambda: run_finance_agent(
         company, industry, strategic_question,
         state.formulation, state.execution,
         context=fetch("financial performance revenue EBITDA cash flow valuation cap table funding burn rate"),
         market_data=market_data_str,
-    )
+    ), state.failed_agents)
+    _step("finance", "done")
 
-    print("✅ All agents complete.")
+    if state.failed_agents:
+        print(f"⚠️  Pipeline complete with {len(state.failed_agents)} failed agent(s): {', '.join(state.failed_agents)}")
+    else:
+        print("✅ All agents complete.")
     return state

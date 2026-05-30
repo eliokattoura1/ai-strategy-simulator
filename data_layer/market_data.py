@@ -37,8 +37,10 @@ def get_yahoo_finance(ticker: str) -> dict:
     return base
 
 
-def get_world_bank(country_code: str, year: int = 2023) -> dict:
+def get_world_bank(country_code: str, year: int = 2024) -> dict:
+    import time
     import requests
+    from collections import Counter
 
     indicators = {
         "NY.GDP.MKTP.KD.ZG":    "gdp_growth_pct",
@@ -50,23 +52,33 @@ def get_world_bank(country_code: str, year: int = 2023) -> dict:
     }
 
     result = {v: None for v in indicators.values()}
-    result["year"] = year
+    field_years: dict[str, int] = {}
 
     try:
         for indicator, field in indicators.items():
-            url = (
-                f"https://api.worldbank.org/v2/country/{country_code}"
-                f"/indicator/{indicator}"
-                f"?format=json&mrv=1&per_page=1"
-            )
-            r = requests.get(url, timeout=10)
-            data = r.json()
-            if (isinstance(data, list) and len(data) > 1
-                    and data[1] and data[1][0].get("value") is not None):
-                result[field] = round(float(data[1][0]["value"]), 2)
+            for yr in (year, year - 1, year - 2):
+                url = (
+                    f"https://api.worldbank.org/v2/country/{country_code}"
+                    f"/indicator/{indicator}"
+                    f"?format=json&date={yr}&per_page=1"
+                )
+                try:
+                    r = requests.get(url, timeout=15)
+                except requests.Timeout:
+                    time.sleep(2)
+                    r = requests.get(url, timeout=15)
+                data = r.json()
+                if (isinstance(data, list) and len(data) > 1
+                        and data[1] and data[1][0].get("value") is not None):
+                    result[field] = round(float(data[1][0]["value"]), 2)
+                    field_years[field] = yr
+                    break
     except Exception as e:
         result["error"] = f"World Bank: {e}"
 
+    data_year = Counter(field_years.values()).most_common(1)[0][0] if field_years else None
+    result["data_year"] = data_year
+    result["_field_years"] = field_years
     return result
 
 
@@ -106,9 +118,13 @@ def get_alpha_vantage_fundamentals(ticker: str) -> dict:
         resp = requests.get(url, timeout=10)
         resp.raise_for_status()
         raw = resp.json()
+        note = raw.get("Note") or raw.get("Information") or ""
+        if "Thank you for using Alpha Vantage" in note or "higher API call frequency" in note:
+            result = {key_map[k]: None for k in fields}
+            result["error"] = "Alpha Vantage: rate limit reached — upgrade to premium or wait"
+            return result
         if not raw or "Symbol" not in raw:
-            note = raw.get("Note") or raw.get("Information") or "empty response"
-            return {"error": f"Alpha Vantage: {note}"}
+            return {"error": f"Alpha Vantage: {note or 'empty response'}"}
         return {key_map[k]: raw.get(k) for k in fields}
     except Exception as exc:
         return {"error": f"Alpha Vantage: {exc}"}
@@ -202,7 +218,6 @@ def format_for_agent_prompt(market_data: dict) -> str:
     av = market_data.get("alpha_vantage", {}) or {}
     wb = market_data.get("world_bank", {}) or {}
     country_code = market_data.get("country_code", "")
-    wb_year = wb.get("year", 2023)
 
     lines = ["=== REAL MARKET DATA (verified external sources) ===", ""]
 
@@ -227,18 +242,21 @@ def format_for_agent_prompt(market_data: dict) -> str:
 
     wb_ok = market_data.get("data_quality", {}).get("world_bank_available", False)
     if wb_ok:
-        lines.append(f"MACRO ENVIRONMENT (World Bank - {country_code} {wb_year}):")
+        wb_year = wb.get("data_year", "N/A")
+        field_years = wb.get("_field_years", {})
+        lines.append(f"MACRO ENVIRONMENT (World Bank — {country_code}):")
         wb_fields = [
-            ("GDP Growth",              _fmt_wb(wb.get("gdp_growth_pct"))),
-            ("Inflation",               _fmt_wb(wb.get("inflation_pct"))),
-            ("Unemployment",            _fmt_wb(wb.get("unemployment_pct"))),
-            ("GDP per Capita",          _fmt_money(wb.get("gdp_per_capita_usd")) if wb.get("gdp_per_capita_usd") else None),
-            ("Government Debt (% GDP)", _fmt_wb(wb.get("govt_debt_pct_gdp"))),
-            ("FDI (% GDP)",             _fmt_wb(wb.get("fdi_pct_gdp"))),
+            ("GDP Growth",              "gdp_growth_pct",       _fmt_wb(wb.get("gdp_growth_pct"))),
+            ("Inflation",               "inflation_pct",        _fmt_wb(wb.get("inflation_pct"))),
+            ("Unemployment",            "unemployment_pct",     _fmt_wb(wb.get("unemployment_pct"))),
+            ("GDP per Capita",          "gdp_per_capita_usd",   _fmt_money(wb.get("gdp_per_capita_usd")) if wb.get("gdp_per_capita_usd") else None),
+            ("Government Debt (% GDP)", "govt_debt_pct_gdp",    _fmt_wb(wb.get("govt_debt_pct_gdp"))),
+            ("FDI (% GDP)",             "fdi_pct_gdp",          _fmt_wb(wb.get("fdi_pct_gdp"))),
         ]
-        for label, val in wb_fields:
+        for label, field_key, val in wb_fields:
             if val is not None:
-                lines.append(f"- {label}: {val}")
+                yr = field_years.get(field_key, wb_year)
+                lines.append(f"- {label}: {val} ({yr})")
         lines.append("")
 
     lines.append(f"DATA QUALITY: {quality}")

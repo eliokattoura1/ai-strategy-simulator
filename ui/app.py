@@ -8,6 +8,8 @@ import sys
 import json
 import math
 import asyncio
+import threading
+import time
 
 # ── Path setup ────────────────────────────────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -23,16 +25,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ── Lazy agent imports (after path setup) ─────────────────────────────────────
-from agents.orchestrator import SimulatorState
-from agents.external_agent import run_external_agent
-from agents.internal_agent import run_internal_agent
-from agents.position_agent import run_position_agent
-from agents.competitive_agent import run_competitive_agent
-from agents.formulation_agent import run_formulation_agent
-from agents.risk_agent import run_risk_agent
-from agents.execution_agent import run_execution_agent
-from agents.synthesis import run_synthesis
+# ── Lazy imports (after path setup) ───────────────────────────────────────────
 from reports.pdf_generator import generate_report
 from reports.charts_generator import generate_all_charts
 
@@ -549,102 +542,6 @@ def _progress_row_html(label: str, state: str) -> str:
     return (f'<div class="agent-row {cls}">{dot}<span>{label}</span>{suffix}</div>')
 
 
-# ── Async agent runner ────────────────────────────────────────────────────────
-
-def _run_agents(company: str, industry: str, question: str, slots: dict, company_name: str = None) -> tuple:
-    """
-    Run all agents sequentially (with gather for parallel pairs).
-    `slots` maps step keys to st.empty() placeholders for live progress.
-    Returns (SimulatorState, SynthesisOutput).
-    """
-
-    labels = {
-        "ext_int":    "External + Internal Analysis",
-        "position":   "Strategic Position",
-        "competitive":"Competitive Dynamics",
-        "formulation":"Strategy Formulation",
-        "risk":       "Risk Assessment",
-        "execution":  "Execution Planning",
-        "synthesis":  "Synthesis & Ranking",
-    }
-
-    def _mark(key: str, state: str):
-        slots[key].markdown(_progress_row_html(labels.get(key, key), state),
-                            unsafe_allow_html=True)
-
-    async def _main():
-        sim_state = SimulatorState(
-            company=company, industry=industry, strategic_question=question
-        )
-
-        # Build RAG context fetcher for progress-display run
-        _rag_fetch = lambda q: None
-        if company_name:
-            print(f"[RAG] _run_agents: RAG enabled for company='{company_name}'")
-            try:
-                from rag.document_processor import query_context
-                def _rag_fetch(q):
-                    result = query_context(company_name, q)
-                    return result if result else None
-            except Exception as e:
-                print(f"[RAG] _run_agents: failed to import query_context: {e}")
-        else:
-            print("[RAG] _run_agents: no company_name — RAG disabled")
-
-        _mark("ext_int", "running")
-        sim_state.external, sim_state.internal = await asyncio.gather(
-            run_external_agent(company, industry, question,
-                context=_rag_fetch("external environment PESTEL market trends competition regulatory political economic")),
-            run_internal_agent(company, industry, question,
-                context=_rag_fetch("internal capabilities resources operations technology staff financial performance")),
-        )
-        _mark("ext_int", "done")
-
-        _mark("position", "running")
-        sim_state.position = await run_position_agent(
-            company, industry, question, sim_state.external, sim_state.internal,
-            context=_rag_fetch("strategic position market share growth competitive advantages SWOT"),
-        )
-        _mark("position", "done")
-
-        _mark("competitive", "running")
-        sim_state.competitive = await run_competitive_agent(
-            company, industry, question, sim_state.external, sim_state.position,
-            context=_rag_fetch("competitors competitive strategy market dynamics pricing rivalry"),
-        )
-        _mark("competitive", "done")
-
-        _mark("formulation", "running")
-        sim_state.formulation = await run_formulation_agent(
-            company, industry, question,
-            sim_state.internal, sim_state.position, sim_state.competitive,
-            context=_rag_fetch("strategy direction value proposition differentiation cost structure"),
-        )
-        _mark("formulation", "done")
-
-        _mark("risk", "running")
-        sim_state.risk = await run_risk_agent(
-            company, industry, question, sim_state.external, sim_state.formulation,
-            context=_rag_fetch("risks challenges threats uncertainties regulatory compliance"),
-        )
-        _mark("risk", "done")
-
-        _mark("execution", "running")
-        sim_state.execution = await run_execution_agent(
-            company, industry, question, sim_state.formulation, sim_state.risk,
-            context=_rag_fetch("implementation operations milestones KPIs execution roadmap initiatives"),
-        )
-        _mark("execution", "done")
-
-        _mark("synthesis", "running")
-        synthesis_out = await run_synthesis(sim_state)
-        _mark("synthesis", "done")
-
-        return sim_state, synthesis_out
-
-    return asyncio.run(_main())
-
-
 # ── Page: Home ────────────────────────────────────────────────────────────────
 
 def page_home():
@@ -890,16 +787,21 @@ def page_run():
                 st.warning(f"Document indexing failed — simulation will continue without RAG context. ({rag_exc})")
 
         # ── Progress display ──────────────────────────────────────────────
-        step_keys = ["ext_int", "position", "competitive",
-                     "formulation", "risk", "execution", "synthesis"]
+        step_keys = [
+            "market_data", "ext_int", "position", "competitive", "formulation",
+            "risk", "ethics", "execution", "finance", "synthesis",
+        ]
         labels = {
-            "ext_int":    "External + Internal Analysis",
-            "position":   "Strategic Position",
-            "competitive":"Competitive Dynamics",
-            "formulation":"Strategy Formulation",
-            "risk":       "Risk Assessment",
-            "execution":  "Execution Planning",
-            "synthesis":  "Synthesis & Ranking",
+            "market_data": "Fetching Market Data",
+            "ext_int":     "External + Internal Analysis",
+            "position":    "Strategic Position",
+            "competitive": "Competitive Dynamics",
+            "formulation": "Strategy Formulation",
+            "risk":        "Risk Assessment",
+            "ethics":      "Ethics & ESG Analysis",
+            "execution":   "Execution Planning",
+            "finance":     "Financial Viability Analysis",
+            "synthesis":   "Synthesis & Ranking",
         }
 
         st.markdown('<div class="gold-hr"></div>', unsafe_allow_html=True)
@@ -930,53 +832,81 @@ def page_run():
             <div class="card-navy" style="padding:1.4rem 1.3rem; margin-bottom:0; text-align:center;">
                 <div style="color:#8895AE; font-size:0.66rem; text-transform:uppercase;
                             letter-spacing:1.5px;">Live Status</div>
-                <div style="font-size:2rem; margin:0.6rem 0;">⏱️</div>
+                <div style="font-size:2rem; margin:0.5rem 0 0.4rem;">⏱️</div>
                 <div style="color:#C9A84C; font-weight:800; font-size:0.95rem;">Running…</div>
-                <div style="color:#8895AE; font-size:0.74rem; margin-top:0.5rem;">
-                    Avg 60–120 sec
-                </div>
             </div>
             """, unsafe_allow_html=True)
+            timer_slot = st.empty()
 
-        # ── Run agents ────────────────────────────────────────────────────
-        try:
-            _run_agents(company.strip(), industry.strip(), question.strip(), slots, company_name=rag_company)
-        except Exception as exc:
-            st.error(f"Simulation failed: {exc}")
+        # ── Run simulation in background thread so timer can tick ─────────
+        _ticker_val       = ticker.strip() if ticker else None
+        _country_code_val = country_code.strip() if country_code else None
+
+        def _mark(key: str, state: str):
+            if key in slots:
+                slots[key].markdown(
+                    _progress_row_html(labels.get(key, key), state),
+                    unsafe_allow_html=True,
+                )
+
+        _result = {"error": None, "done": False}
+
+        async def _save_reports():
+            import main as _main
+            return await _main.run_simulation(
+                company.strip(), industry.strip(), question.strip(),
+                company_name=rag_company,
+                ticker=_ticker_val,
+                country_code=_country_code_val,
+                on_step=_mark,
+            )
+
+        def _run_thread():
+            try:
+                asyncio.run(_save_reports())
+            except Exception as exc:
+                _result["error"] = exc
+            finally:
+                _result["done"] = True
+
+        _sim_thread = threading.Thread(target=_run_thread, daemon=True)
+        _start = time.time()
+        _sim_thread.start()
+
+        # Tick the counter every second until the thread finishes
+        while not _result["done"]:
+            _s = int(time.time() - _start)
+            timer_slot.markdown(
+                f'<div style="text-align:center;margin-top:0.5rem;'
+                f'color:#8895AE;font-size:0.88rem;font-weight:600;">'
+                f'Elapsed: {_s}s</div>',
+                unsafe_allow_html=True,
+            )
+            time.sleep(1)
+
+        _total = int(time.time() - _start)
+        timer_slot.markdown(
+            f'<div style="text-align:center;margin-top:0.5rem;'
+            f'color:#2ECC71;font-size:0.88rem;font-weight:700;">'
+            f'✓ Done in {_total}s</div>',
+            unsafe_allow_html=True,
+        )
+
+        if _result["error"]:
+            st.error(f"Simulation failed: {_result['error']}")
             with st.expander("Error details"):
                 import traceback
-                st.code(traceback.format_exc())
+                st.code(str(_result["error"]))
             return
 
-        # ── Generate artefacts (JSON persisted via main.run_simulation) ────
-        status_slot = st.empty()
-        status_slot.info("Generating PDF report and charts…")
         try:
-            _ticker_val       = ticker.strip() if ticker else None
-            _country_code_val = country_code.strip() if country_code else None
-
-            # Agents already ran above — now run full pipeline for JSON + reports
-            async def _save_reports():
-                import main as _main
-                state, synth = await _main.run_simulation(
-                    company.strip(), industry.strip(), question.strip(),
-                    company_name=rag_company,
-                    ticker=_ticker_val,
-                    country_code=_country_code_val,
-                )
-                return state, synth
-
-            state_final, synth_final = asyncio.run(_save_reports())
-
             generate_report(JSON_PATH, PDF_PATH)
             generate_all_charts(JSON_PATH)
 
-            # Reload output_data
             with open(JSON_PATH, encoding="utf-8") as f:
                 st.session_state.output_data = json.load(f)
 
             st.session_state.simulation_done = True
-            status_slot.empty()
 
         except Exception as exc:
             st.error(f"Report generation failed: {exc}")

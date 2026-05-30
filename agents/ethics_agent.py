@@ -20,11 +20,19 @@ ETHICS_SYSTEM_PROMPT = """You are a Chief Ethics Officer evaluating a strategic 
    - Virtue Ethics: does it reflect good character and organizational values?
    Each returns verdict (Supports/Neutral/Opposes) and reasoning.
 
-3. ESG Scoring (0-10 each pillar):
-   - Environmental: carbon footprint, resource use, sustainability
-   - Social: employee welfare, community impact, diversity
-   - Governance: transparency, board accountability, ethical leadership
-   Include red_flags per pillar (empty list if none).
+3. ESG Scoring (0-10 each pillar) — each score MUST be grounded in cited evidence, not opinion:
+   - Environmental: cite energy use (MWh or relative benchmark), estimated carbon footprint
+     (tCO2e or qualitative tier), waste generation/diversion rates, and supply chain
+     environmental impact (upstream emissions, sourcing practices).
+   - Social: cite employee count affected by the strategy, named community programs (or
+     their absence), digital inclusion initiatives, and specific labor practices (wage
+     levels, working hours, health & safety record).
+   - Governance: cite board composition (% independent directors), regulatory compliance
+     history (violations, fines, consent orders in last 5 years), a transparency score
+     (quality and frequency of public reporting), and audit quality (auditor name, any
+     material weaknesses or restatements).
+   For each pillar return: pillar, score, rationale, evidence_basis (1-2 sentences of
+   specific cited facts or metrics), and red_flags (empty list if none).
 
 4. ethical_red_flags: specific concerns about the strategy (list of strings)
 5. recommended_safeguards: concrete actions to address each red flag (list of strings)
@@ -36,7 +44,7 @@ Return ONLY valid JSON matching this schema exactly:
 {
   "stakeholder_impacts": [{"stakeholder": "string", "impact_type": "Positive|Negative|Mixed|Neutral", "severity": "High|Medium|Low", "description": "string", "ethical_concern": "string or null"}],
   "ethical_frameworks": [{"framework": "Utilitarian|Deontological|Virtue Ethics", "verdict": "Supports|Neutral|Opposes", "reasoning": "string"}],
-  "esg_scores": [{"pillar": "Environmental|Social|Governance", "score": 7.5, "rationale": "string", "red_flags": ["string"]}],
+  "esg_scores": [{"pillar": "Environmental|Social|Governance", "score": 7.5, "rationale": "string", "evidence_basis": "specific metrics and facts cited for this score", "red_flags": ["string"]}],
   "composite_esg_score": 7.0,
   "ethical_red_flags": ["string"],
   "recommended_safeguards": ["string"],

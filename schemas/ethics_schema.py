@@ -14,6 +14,7 @@ class ESGScore(BaseModel):
     pillar: Literal["Environmental", "Social", "Governance"]
     score: float = Field(..., ge=0.0, le=10.0)
     rationale: str
+    evidence_basis: str                  # specific metrics/facts that ground the score
     red_flags: List[str] = Field(default_factory=list)
 
 
