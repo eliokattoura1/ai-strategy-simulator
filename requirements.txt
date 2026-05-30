@@ -8,3 +8,4 @@ yfinance
 wbgapi
 langgraph
 pydantic-settings
+pytest

@@ -33,7 +33,7 @@ def _raises(model_cls, data: dict) -> bool:
     try:
         model_cls(**data)
         return False
-    except (ValidationError, Exception):
+    except ValidationError:
         return True
 
 
@@ -198,6 +198,18 @@ def test_execution_valid():
     assert obj.execution_readiness_score == 68
 
 
+def test_execution_score_bounds():
+    base = ExecutionAgentOutput(
+        balanced_scorecard=[BSCObjective(perspective="financial", objective="Revenue+10%", kpi="Revenue", target="$10M", initiative="Sales push")],
+        okrs=[OKR(objective="Launch product", key_results=["Ship v1", "100 users"], timeframe="Q2", owner="CPO")],
+        critical_success_factors=["Talent"],
+        execution_readiness_score=68,
+        quick_wins=["CRM rollout"],
+    )
+    assert _raises(ExecutionAgentOutput, {**base.model_dump(), "execution_readiness_score": 101})
+    assert not _raises(ExecutionAgentOutput, {**base.model_dump(), "execution_readiness_score": 100})
+
+
 # ── 8. Ethics ─────────────────────────────────────────────────────────────────
 
 def test_ethics_valid():
@@ -275,6 +287,14 @@ def test_finance_invalid_go_signal():
     assert _raises(FinanceAgentOutput, {**_make_finance_output().model_dump(), "go_signal": "Maybe"})
 
 
+def test_finance_go_signal_valid_values():
+    base = _make_finance_output()
+    for signal in ["Go", "Conditional Go", "No Go"]:
+        base.go_signal = signal
+        validated = FinanceAgentOutput.model_validate(base.model_dump())
+        assert validated.go_signal == signal
+
+
 # ── 10. Synthesis ─────────────────────────────────────────────────────────────
 
 def test_synthesis_valid():
@@ -305,28 +325,6 @@ def test_synthesis_score_out_of_range():
     ))
 
 
-# ── Runner ─────────────────────────────────────────────────────────────────────
-
 if __name__ == "__main__":
-    tests = [
-        test_external_valid, test_external_score_out_of_range, test_porter_force_score_bounds,
-        test_internal_valid, test_internal_mckinsey_score_bounds,
-        test_position_valid, test_swot_impact_score_bounds,
-        test_competitive_valid, test_game_theory_payoff_bounds,
-        test_formulation_valid, test_strategy_clock_position_bounds,
-        test_risk_valid, test_steep_probability_bounds,
-        test_execution_valid,
-        test_ethics_valid, test_esg_score_bounds,
-        test_finance_valid, test_cash_flow_year_computed_properties, test_finance_invalid_go_signal,
-        test_synthesis_valid, test_synthesis_score_out_of_range,
-    ]
-    passed = 0
-    for t in tests:
-        try:
-            t()
-            print(f"  ✓  {t.__name__}")
-            passed += 1
-        except Exception as e:
-            print(f"  ✗  {t.__name__}: {e}")
-    print(f"\n{'─'*50}")
-    print(f"Results: {passed}/{len(tests)} passed")
+    import pytest, sys
+    sys.exit(pytest.main([__file__, "-v"]))

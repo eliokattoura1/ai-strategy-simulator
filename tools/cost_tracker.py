@@ -1,7 +1,10 @@
+import threading
 from dataclasses import dataclass, field
 from typing import Dict
 
-# GPT-4o pricing (per 1M tokens)
+_lock = threading.Lock()
+
+# GPT-4o pricing as of May 2026 — verify at platform.openai.com/pricing
 _INPUT_COST_PER_1M = 2.50
 _OUTPUT_COST_PER_1M = 10.00
 
@@ -18,15 +21,16 @@ class CostTracker:
     breakdown: Dict[str, AgentCost] = field(default_factory=dict)
 
     def record(self, agent_name: str, prompt_tokens: int, completion_tokens: int) -> None:
-        cost = (
-            prompt_tokens * _INPUT_COST_PER_1M
-            + completion_tokens * _OUTPUT_COST_PER_1M
-        ) / 1_000_000
-        self.breakdown[agent_name] = AgentCost(
-            tokens_in=prompt_tokens,
-            tokens_out=completion_tokens,
-            cost_usd=round(cost, 6),
-        )
+        with _lock:
+            cost = (
+                prompt_tokens * _INPUT_COST_PER_1M
+                + completion_tokens * _OUTPUT_COST_PER_1M
+            ) / 1_000_000
+            self.breakdown[agent_name] = AgentCost(
+                tokens_in=prompt_tokens,
+                tokens_out=completion_tokens,
+                cost_usd=round(cost, 6),
+            )
 
     @property
     def total_cost_usd(self) -> float:
