@@ -1,8 +1,7 @@
 import asyncio
 import json
-from agents import synthesis
 from agents.orchestrator import run_orchestrator
-from agents.synthesis import run_synthesis
+from tools.cost_tracker import tracker as cost_tracker
 
 async def run_simulation(
     company: str,
@@ -13,6 +12,8 @@ async def run_simulation(
     country_code: str = None,
     on_step=None,
 ):
+    cost_tracker.reset()
+
     print(f"\n{'='*60}")
     print(f"AI STRATEGY SIMULATOR")
     print(f"Company: {company}")
@@ -20,7 +21,7 @@ async def run_simulation(
     print(f"Question: {strategic_question}")
     print(f"{'='*60}\n")
 
-    # Run all agents
+    # Run full pipeline (includes synthesis as final node)
     state = await run_orchestrator(
         company, industry, strategic_question,
         company_name=company_name,
@@ -29,18 +30,14 @@ async def run_simulation(
         on_step=on_step,
     )
 
-    # Synthesize
-    print("🧠 Running Synthesis Layer...")
-    if on_step:
-        on_step("synthesis", "running")
-    synthesis = await run_synthesis(state)
-    if on_step:
-        on_step("synthesis", "done")
+    synthesis = state.synthesis
 
     print(f"\n{'='*60}")
     print(f"✅ SIMULATION COMPLETE")
-    print(f"Overall Strategic Fit Score: {synthesis.overall_strategic_fit_score}/100")
-    print(f"Recommended Strategy: {synthesis.ranked_recommendation}")
+    if synthesis:
+        print(f"Overall Strategic Fit Score: {synthesis.overall_strategic_fit_score}/100")
+        print(f"Recommended Strategy: {synthesis.ranked_recommendation}")
+    print(f"\n{cost_tracker.summary()}")
     print(f"{'='*60}\n")
 
     # Save raw JSON output

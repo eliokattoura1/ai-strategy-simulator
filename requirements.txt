@@ -6,3 +6,5 @@ reportlab
 requests
 yfinance
 wbgapi
+langgraph
+pydantic-settings
